@@ -1,0 +1,8 @@
+# Primary expressions
+main = fun () -> int {
+  a = (1 + 2);
+  b = [1, 2];
+  c = (f = 1, g = 2);
+  d = c;
+  -> 0;
+}
