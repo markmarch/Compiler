@@ -1,4 +1,6 @@
-.idea/*
+.idea
+.history
+.idea_modules
 target/*
 *.class
 lib_managed/
