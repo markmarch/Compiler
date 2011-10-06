@@ -16,4 +16,17 @@ class TackLexical extends StdLexical{
       whitespaceChar
     | '#' ~ rep(chrExcept(EofCh, '\n'))
     | '#' ~ failure("unclosed comment"))
+
+  def string : Parser[Token] = '\"' ~ rep(('\\' ~ chrExcept('\n',EofCh))
+    | chrExcept('\"','\n', EofCh)) ~ '\"' ^^ { case '\"' ~ chars ~ '\"' => StringLit(chars mkString "")}
+
+  override def token : Parser[Token] =
+    ( identChar ~ rep( identChar | digit )              ^^ { case first ~ rest => processIdent(first :: rest mkString "") }
+    | digit ~ rep( digit )                              ^^ { case first ~ rest => NumericLit(first :: rest mkString "") }
+    | string
+    | EofCh                                             ^^^ EOF
+    | '\"' ~> failure("unclosed string literal")
+    | delim
+    | failure("illegal character")
+    )
 }
