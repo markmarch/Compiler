@@ -1,0 +1,7 @@
+# Semantic errors for unresolved types in declarations
+main = fun () -> int {
+  a = [ ];
+  b = ( c = [ ] );
+  c = [ a ];
+  -> 0;
+}
