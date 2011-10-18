@@ -1,0 +1,97 @@
+Program
+  FunDef
+    FunId sort
+    FunType
+      RecordType
+        FieldType
+          FieldId a
+          ArrayType
+            PrimitiveType int
+      PrimitiveType void
+    BlockStmt
+      VarDef
+        VarId n
+        CallExpr
+          FunId size
+          VarId a
+      ForStmt
+        VarId iOuter
+        CallExpr
+          FunId range
+          IntLit 0
+          InfixExpr -
+            VarId n
+            IntLit 1
+        BlockStmt
+          VarDef
+            VarId iSmallest
+            VarId iOuter
+          ForStmt
+            VarId iInner
+            CallExpr
+              FunId range
+              VarId iOuter
+              VarId n
+            BlockStmt
+              IfStmt
+                InfixExpr <
+                  SubscriptExpr
+                    VarId a
+                    VarId iInner
+                  SubscriptExpr
+                    VarId a
+                    VarId iSmallest
+                BlockStmt
+                  AssignStmt
+                    VarId iSmallest
+                    VarId iInner
+          VarDef
+            VarId eSmallest
+            SubscriptExpr
+              VarId a
+              VarId iSmallest
+          AssignStmt
+            SubscriptExpr
+              VarId a
+              VarId iSmallest
+            SubscriptExpr
+              VarId a
+              VarId iOuter
+          AssignStmt
+            SubscriptExpr
+              VarId a
+              VarId iOuter
+            VarId eSmallest
+  FunDef
+    FunId main
+    FunType
+      RecordType
+      PrimitiveType int
+    BlockStmt
+      VarDef
+        VarId a
+        ArrayLit
+          IntLit 2
+          IntLit 0
+          IntLit 1
+          IntLit 2
+      CallStmt
+        CallExpr
+          FunId sort
+          VarId a
+      ForStmt
+        VarId e
+        VarId a
+        BlockStmt
+          CallStmt
+            CallExpr
+              FunId print
+              InfixExpr +
+                StringLit " "
+                VarId e
+      CallStmt
+        CallExpr
+          FunId print
+          StringLit "\n"
+      ReturnStmt
+        IntLit 0

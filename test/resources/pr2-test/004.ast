@@ -1,0 +1,54 @@
+Program
+  FunDef
+    FunId main
+    FunType
+      RecordType
+      PrimitiveType int
+    BlockStmt
+      VarDef
+        VarId a
+        IntLit 1
+      VarDef
+        VarId b
+        InfixExpr ||
+          InfixExpr <
+            VarId a
+            IntLit 0
+          InfixExpr >
+            VarId a
+            IntLit 10
+      VarDef
+        VarId c
+        InfixExpr &&
+          InfixExpr >=
+            VarId a
+            IntLit 0
+          InfixExpr <=
+            VarId a
+            IntLit 10
+      VarDef
+        VarId d
+        InfixExpr &&
+          InfixExpr <
+            InfixExpr +
+              VarId a
+              IntLit 1
+            InfixExpr -
+              InfixExpr *
+                IntLit 2
+                VarId a
+              IntLit 1
+          InfixExpr !=
+            VarId a
+            IntLit 9
+      VarDef
+        VarId e
+        InfixExpr +
+          InfixExpr /
+            VarId a
+            IntLit 7
+          InfixExpr %
+            VarId a
+            IntLit 5
+      ReturnStmt
+        IntLit 0

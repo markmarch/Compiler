@@ -1,0 +1,82 @@
+Program
+  FunDef
+    FunId recursiveFactorial
+    FunType
+      RecordType
+        FieldType
+          FieldId i
+          PrimitiveType int
+      PrimitiveType int
+    BlockStmt
+      IfStmt
+        InfixExpr >=
+          IntLit 1
+          VarId i
+        BlockStmt
+          ReturnStmt
+            IntLit 1
+      ReturnStmt
+        InfixExpr *
+          VarId i
+          CallExpr
+            FunId recursiveFactorial
+            InfixExpr -
+              VarId i
+              IntLit 1
+  FunDef
+    FunId iterativeFactorial
+    FunType
+      RecordType
+        FieldType
+          FieldId i
+          PrimitiveType int
+      PrimitiveType int
+    BlockStmt
+      VarDef
+        VarId result
+        IntLit 1
+      WhileStmt
+        InfixExpr <=
+          IntLit 1
+          VarId i
+        BlockStmt
+          AssignStmt
+            VarId result
+            InfixExpr *
+              VarId result
+              VarId i
+          AssignStmt
+            VarId i
+            InfixExpr -
+              VarId i
+              IntLit 1
+      ReturnStmt
+        VarId result
+  FunDef
+    FunId main
+    FunType
+      RecordType
+      PrimitiveType int
+    BlockStmt
+      CallStmt
+        CallExpr
+          FunId print
+          InfixExpr +
+            InfixExpr +
+              StringLit "recursiveFactorial(5) == "
+              CallExpr
+                FunId recursiveFactorial
+                IntLit 5
+            StringLit "\n"
+      CallStmt
+        CallExpr
+          FunId print
+          InfixExpr +
+            InfixExpr +
+              StringLit "iterativeFactorial(5) == "
+              CallExpr
+                FunId iterativeFactorial
+                IntLit 5
+            StringLit "\n"
+      ReturnStmt
+        IntLit 0

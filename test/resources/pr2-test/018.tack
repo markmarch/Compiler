@@ -1,0 +1,20 @@
+# Factorial
+recursiveFactorial = fun (i: int)-> int {
+  if 1 >= i {
+    -> 1;
+  }
+  -> i * recursiveFactorial(i - 1);
+}
+iterativeFactorial = fun (i: int)-> int {
+  result = 1;
+  while 1 <= i {
+    result := result * i;
+    i := i - 1;
+  }
+  -> result;
+}
+main = fun () -> int {
+  print("recursiveFactorial(5) == " + recursiveFactorial(5) + "\n");
+  print("iterativeFactorial(5) == " + iterativeFactorial(5) + "\n");
+  -> 0;
+}

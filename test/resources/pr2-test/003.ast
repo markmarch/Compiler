@@ -1,0 +1,41 @@
+Program
+  FunDef
+    FunId main
+    FunType
+      RecordType
+      PrimitiveType int
+    BlockStmt
+      VarDef
+        VarId a
+        InfixExpr +
+          IntLit 1
+          IntLit 1
+      VarDef
+        VarId b
+        InfixExpr -
+          InfixExpr -
+            IntLit 1
+            IntLit 1
+          IntLit 1
+      VarDef
+        VarId c
+        InfixExpr +
+          IntLit 2
+          InfixExpr *
+            IntLit 3
+            IntLit 4
+      VarDef
+        VarId d
+        InfixExpr +
+          InfixExpr *
+            InfixExpr *
+              IntLit 1
+              IntLit 2
+            IntLit 3
+          InfixExpr *
+            InfixExpr *
+              IntLit 4
+              IntLit 5
+            IntLit 6
+      ReturnStmt
+        IntLit 0

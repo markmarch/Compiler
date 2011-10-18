@@ -1,0 +1,5 @@
+# Hello-world
+main = fun () -> int {
+  print("Hello, world!\n");
+  -> 0;
+}

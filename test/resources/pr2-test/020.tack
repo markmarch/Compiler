@@ -1,0 +1,18 @@
+# Tree interpreter
+eval = fun (expr : (o: string)) -> int {
+  if stringEqual("+", expr.o) {
+    e = expr : (o: string, l: (o: string), r: (o: string));
+    -> eval(e.l) + eval(e.r);
+  }
+  if stringEqual("-", expr.o) {
+    e = expr : (o: string, l: (o: string), r: (o: string));
+    -> eval(e.l) - eval(e.r);
+  }
+  -> expr.o : int;
+}
+main = fun () -> int {
+  tree = (o="+", l=(o="-", l=(o="5"), r=(o="3")), r=(o="2"));
+  result = eval(tree);
+  print(result + "\n");
+  -> 0;
+}

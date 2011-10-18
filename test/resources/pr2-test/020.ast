@@ -1,0 +1,148 @@
+Program
+  FunDef
+    FunId eval
+    FunType
+      RecordType
+        FieldType
+          FieldId expr
+          RecordType
+            FieldType
+              FieldId o
+              PrimitiveType string
+      PrimitiveType int
+    BlockStmt
+      IfStmt
+        CallExpr
+          FunId stringEqual
+          StringLit "+"
+          FieldExpr
+            VarId expr
+            FieldId o
+        BlockStmt
+          VarDef
+            VarId e
+            CastExpr
+              VarId expr
+              RecordType
+                FieldType
+                  FieldId o
+                  PrimitiveType string
+                FieldType
+                  FieldId l
+                  RecordType
+                    FieldType
+                      FieldId o
+                      PrimitiveType string
+                FieldType
+                  FieldId r
+                  RecordType
+                    FieldType
+                      FieldId o
+                      PrimitiveType string
+          ReturnStmt
+            InfixExpr +
+              CallExpr
+                FunId eval
+                FieldExpr
+                  VarId e
+                  FieldId l
+              CallExpr
+                FunId eval
+                FieldExpr
+                  VarId e
+                  FieldId r
+      IfStmt
+        CallExpr
+          FunId stringEqual
+          StringLit "-"
+          FieldExpr
+            VarId expr
+            FieldId o
+        BlockStmt
+          VarDef
+            VarId e
+            CastExpr
+              VarId expr
+              RecordType
+                FieldType
+                  FieldId o
+                  PrimitiveType string
+                FieldType
+                  FieldId l
+                  RecordType
+                    FieldType
+                      FieldId o
+                      PrimitiveType string
+                FieldType
+                  FieldId r
+                  RecordType
+                    FieldType
+                      FieldId o
+                      PrimitiveType string
+          ReturnStmt
+            InfixExpr -
+              CallExpr
+                FunId eval
+                FieldExpr
+                  VarId e
+                  FieldId l
+              CallExpr
+                FunId eval
+                FieldExpr
+                  VarId e
+                  FieldId r
+      ReturnStmt
+        CastExpr
+          FieldExpr
+            VarId expr
+            FieldId o
+          PrimitiveType int
+  FunDef
+    FunId main
+    FunType
+      RecordType
+      PrimitiveType int
+    BlockStmt
+      VarDef
+        VarId tree
+        RecordLit
+          FieldLit
+            FieldId o
+            StringLit "+"
+          FieldLit
+            FieldId l
+            RecordLit
+              FieldLit
+                FieldId o
+                StringLit "-"
+              FieldLit
+                FieldId l
+                RecordLit
+                  FieldLit
+                    FieldId o
+                    StringLit "5"
+              FieldLit
+                FieldId r
+                RecordLit
+                  FieldLit
+                    FieldId o
+                    StringLit "3"
+          FieldLit
+            FieldId r
+            RecordLit
+              FieldLit
+                FieldId o
+                StringLit "2"
+      VarDef
+        VarId result
+        CallExpr
+          FunId eval
+          VarId tree
+      CallStmt
+        CallExpr
+          FunId print
+          InfixExpr +
+            VarId result
+            StringLit "\n"
+      ReturnStmt
+        IntLit 0

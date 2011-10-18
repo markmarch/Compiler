@@ -1,0 +1,64 @@
+Program
+  FunDef
+    FunId main
+    FunType
+      RecordType
+      PrimitiveType int
+    BlockStmt
+      VarDef
+        VarId x
+        IntLit 1
+      AssignStmt
+        VarId x
+        InfixExpr +
+          VarId x
+          IntLit 1
+      IfStmt
+        BoolLit true
+        BlockStmt
+          CallStmt
+            CallExpr
+              FunId print
+              StringLit "a\n"
+        BlockStmt
+          CallStmt
+            CallExpr
+              FunId print
+              StringLit "b\n"
+      BlockStmt
+        WhileStmt
+          BoolLit false
+          BlockStmt
+            CallStmt
+              CallExpr
+                FunId print
+                StringLit "c\n"
+        ForStmt
+          VarId x
+          ArrayLit
+            StringLit "e"
+            StringLit "f"
+            StringLit "g"
+          BlockStmt
+            CallStmt
+              CallExpr
+                FunId print
+                VarId x
+      WhileStmt
+        BoolLit true
+        BlockStmt
+          CallStmt
+            CallExpr
+              FunId print
+              StringLit "h\n"
+          IfStmt
+            BoolLit true
+            BlockStmt
+              CallStmt
+                CallExpr
+                  FunId print
+                  StringLit "i\n"
+              ReturnStmt
+                IntLit 0
+      ReturnStmt
+        IntLit 0

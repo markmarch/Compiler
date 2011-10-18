@@ -1,0 +1,4 @@
+# Test case with syntax error
+main = fun () -> int {
+  a = 3.141;
+}

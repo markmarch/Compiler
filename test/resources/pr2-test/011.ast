@@ -1,0 +1,61 @@
+Program
+  FunDef
+    FunId ping
+    FunType
+      RecordType
+        FieldType
+          FieldId i
+          PrimitiveType int
+      PrimitiveType int
+    BlockStmt
+      IfStmt
+        InfixExpr >
+          VarId i
+          IntLit 0
+        BlockStmt
+          ReturnStmt
+            CallExpr
+              FunId pong
+              InfixExpr -
+                VarId i
+                IntLit 1
+      ReturnStmt
+        IntLit 1
+  FunDef
+    FunId pong
+    FunType
+      RecordType
+        FieldType
+          FieldId i
+          PrimitiveType int
+      PrimitiveType int
+    BlockStmt
+      IfStmt
+        InfixExpr >
+          VarId i
+          IntLit 0
+        BlockStmt
+          ReturnStmt
+            CallExpr
+              FunId ping
+              InfixExpr -
+                VarId i
+                IntLit 1
+      ReturnStmt
+        IntLit 0
+  FunDef
+    FunId main
+    FunType
+      RecordType
+      PrimitiveType int
+    BlockStmt
+      CallStmt
+        CallExpr
+          FunId print
+          InfixExpr +
+            CallExpr
+              FunId ping
+              IntLit 5
+            StringLit "\n"
+      ReturnStmt
+        IntLit 0

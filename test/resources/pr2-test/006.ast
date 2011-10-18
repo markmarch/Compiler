@@ -1,0 +1,23 @@
+Program
+  FunDef
+    FunId main
+    FunType
+      RecordType
+      PrimitiveType int
+    BlockStmt
+      VarDef
+        VarId a
+        BoolLit true
+      VarDef
+        VarId b
+        PrefixExpr !
+          VarId a
+      VarDef
+        VarId c
+        IntLit 1
+      VarDef
+        VarId d
+        PrefixExpr -
+          VarId c
+      ReturnStmt
+        IntLit 0

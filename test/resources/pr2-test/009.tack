@@ -1,0 +1,7 @@
+# Primitive types
+main = fun () -> int {
+  a = 1 : int;
+  b = "x" : string;
+  c = true : bool;
+  -> 0;
+}

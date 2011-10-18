@@ -1,0 +1,24 @@
+# Insertion sort
+sort = fun (a : [int]) -> void {
+  n = size(a);
+  for iOuter in range(0, n-1) {
+    iSmallest = iOuter;
+    for iInner in range(iOuter, n) {
+      if a[iInner] < a[iSmallest] {
+        iSmallest := iInner;
+      }
+    }
+    eSmallest = a[iSmallest];
+    a[iSmallest] := a[iOuter];
+    a[iOuter] := eSmallest;
+  }
+}
+main = fun () -> int {
+  a = [2, 0, 1, 2];
+  sort(a);
+  for e in a {
+    print(" " + e);
+  }
+  print("\n");
+  -> 0;
+}

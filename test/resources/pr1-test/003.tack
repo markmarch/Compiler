@@ -1,0 +1,8 @@
+# Addition and multiplication
+main = fun () -> int {
+  a = 1 + 1;
+  b = 1 - 1 - 1;
+  c = 2 + 3 * 4;
+  d = 1 * 2 * 3 + 4 * 5 * 6;
+  -> 0;
+}

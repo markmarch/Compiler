@@ -1,0 +1,17 @@
+# Recursive functions
+ping = fun (i : int) -> int {
+  if i > 0 {
+    -> pong(i - 1);
+  }
+  -> 1;
+}
+pong = fun (i : int) -> int {
+  if i > 0 {
+    -> ping(i - 1);
+  }
+  -> 0;
+}
+main = fun () -> int {
+  print(ping(5) + "\n");
+  -> 0;
+}

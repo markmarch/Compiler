@@ -1,0 +1,8 @@
+# Prefix expressions
+main = fun () -> int {
+  a = true;
+  b = !a;
+  c = 1;
+  d = -c;
+  -> 0;
+}

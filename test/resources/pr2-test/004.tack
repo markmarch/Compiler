@@ -1,0 +1,9 @@
+# Infix expressions
+main = fun () -> int {
+  a = 1;
+  b = a < 0 || a > 10;
+  c = a >= 0 && a <= 10;
+  d = a + 1 < 2 * a - 1 && a != 9;
+  e = a / 7 + a % 5;
+  -> 0;
+}

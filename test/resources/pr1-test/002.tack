@@ -1,0 +1,11 @@
+# Primitive literals
+main = fun () -> int {
+  a = true;
+  b = false;
+  c = 0;
+  d = 123;
+  e = "";
+  f = "hello";
+  g = "\"Hello\"\n";
+  -> 0;
+}

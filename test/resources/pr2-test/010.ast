@@ -1,0 +1,81 @@
+Program
+  FunDef
+    FunId main
+    FunType
+      RecordType
+      PrimitiveType int
+    BlockStmt
+      VarDef
+        VarId a
+        CastExpr
+          ArrayLit
+            IntLit 1
+            IntLit 2
+          ArrayType
+            PrimitiveType int
+      VarDef
+        VarId b
+        CastExpr
+          RecordLit
+            FieldLit
+              FieldId x
+              IntLit 1
+            FieldLit
+              FieldId y
+              StringLit "Y"
+          RecordType
+            FieldType
+              FieldId x
+              PrimitiveType int
+            FieldType
+              FieldId y
+              PrimitiveType string
+      VarDef
+        VarId c
+        CastExpr
+          RecordLit
+            FieldLit
+              FieldId z
+              ArrayLit
+                IntLit 1
+                IntLit 2
+                IntLit 3
+            FieldLit
+              FieldId q
+              RecordLit
+                FieldLit
+                  FieldId r
+                  ArrayLit
+                    IntLit 4
+                    IntLit 5
+                FieldLit
+                  FieldId s
+                  IntLit 6
+          RecordType
+            FieldType
+              FieldId z
+              ArrayType
+                PrimitiveType int
+            FieldType
+              FieldId q
+              RecordType
+                FieldType
+                  FieldId r
+                  ArrayType
+                    PrimitiveType int
+                FieldType
+                  FieldId s
+                  PrimitiveType int
+      VarDef
+        VarId d
+        CastExpr
+          NullLit
+          RecordType
+            FieldType
+              FieldId x
+              PrimitiveType int
+            FieldType
+              FieldId y
+              PrimitiveType string
+      ReturnStmt
+        IntLit 0

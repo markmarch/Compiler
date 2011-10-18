@@ -1,0 +1,13 @@
+Program
+  FunDef
+    FunId main
+    FunType
+      RecordType
+      PrimitiveType int
+    BlockStmt
+      CallStmt
+        CallExpr
+          FunId print
+          StringLit "Hello, world!\n"
+      ReturnStmt
+        IntLit 0
