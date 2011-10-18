@@ -11,7 +11,7 @@ class TackLexical extends StdLexical{
     | '#' ~ failure("unclosed comment"))
 
   // string literal parser
-  def string : Parser[Token] = '\"' ~ rep(('\\' ~ chrExcept('\n',EofCh))
+  def string : Parser[Token] = '\"' ~ rep('\\' ~ chrExcept('\n',EofCh) ^^ { case '\\' ~ ch => "\\" + ch }
     | chrExcept('\"','\n', EofCh)) ~ '\"' ^^ { case '\"' ~ chars ~ '\"' => StringLit(chars mkString "")}
 
   // override the default token parser to accept string literal

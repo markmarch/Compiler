@@ -29,7 +29,7 @@ case class BoolLit (value : Boolean) extends Expression with HasValue[Boolean]{
 }
 
 case class StringLit (value : String) extends Expression with HasValue[String] {
-  override def label = "StringLit " + value
+  override def label = "StringLit \"" + value + "\""
 }
 
 case class IntLit(value : Int) extends Expression with HasValue[Int]{
