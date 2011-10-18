@@ -1,4 +1,0 @@
-# Test case with syntax error
-main = fun () -> int {
-  a = '';
-}

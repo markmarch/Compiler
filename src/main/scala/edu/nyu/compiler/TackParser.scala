@@ -21,89 +21,108 @@ trait TackParser extends StandardTokenParsers with PackratParsers with ImplicitC
   lexical.reserved ++= TackParser.reserved
 
   // productions
-  def program = (funDef +)
+  def program : Parser[Program] = (funDef +) ^^ { (funList : List[FunDef]) => Program(funList)}
 
-  def funDef = ident ~ "=" ~ "fun" ~ funType ~ blockStmt
+  def funDef : Parser[FunDef] = ident ~ "=" ~ "fun" ~ funType ~ blockStmt  ^^ {
+    case id ~ "=" ~ "fun" ~ typ ~ bs => FunDef(FunId(id), typ, bs)
+  }
 
-  def typ: Parser[Any] = arrayType | recordType | "bool" | "int" | "string"
+  def typ: Parser[Type] = arrayType | recordType| "bool" ^^^ {PrimitiveType("bool")} |
+    "int" ^^^ {PrimitiveType("int")} | "string" ^^^ {PrimitiveType("string")}
 
-  def arrayType = "[" ~ typ ~ "]"
 
-  def recordType = "(" ~ repsep(fieldType, ",") ~ ")"
+  def arrayType : Parser[ArrayType]= "[" ~> typ <~ "]" ^^ {(t : Type) => ArrayType(t)}
 
-  def fieldType = ident ~ ":" ~ typ
+  def recordType : Parser[RecordType] = "(" ~> repsep(fieldType, ",") <~ ")" ^^
+    { (fList : List[FieldType]) => RecordType(fList)}
 
-  def funType = recordType ~ "->" ~ returnType
+  def fieldType : Parser[FieldType] = ident ~ ":" ~ typ ^^
+    {case id ~ ":" ~ t => FieldType(FieldId(id), t)}
 
-  def returnType = typ | "void"
+  def funType : Parser[FunType] = recordType ~ "->" ~ returnType ^^
+    {case from ~ "->" ~ to => FunType(from, to)}
 
-  def stmt : Parser[Any] = varDef | assignStmt | blockStmt | callStmt | forStmt | ifStmt | returnStmt | whileStmt
+  def returnType : Parser[Type] = typ | "void" ^^^ {VoidType}
 
-  def varDef = ident ~ "=" ~ expr ~ ";"
+  def stmt : Parser[Stmt] = varDef | assignStmt | blockStmt | callStmt | forStmt | ifStmt | returnStmt | whileStmt
 
-  def assignStmt = expr ~ (":=" ~ expr) ~ ";"
+  def varDef : Parser[VarDef]= ident ~ "=" ~ expr ~ ";" ^^
+    {case id ~ "=" ~ e ~ ";" => VarDef(VarId(id), e)}
 
-  def blockStmt = "{" ~> rep(stmt) <~ "}"
+  def assignStmt : Parser[AssignStmt] = expr ~ (":=" ~> expr)  ~ ";" ^^
+    { case left ~ right ~ ";" => AssignStmt(left, right)}
 
-  def callStmt = Expressions.callExpr ~ ";"
+  def blockStmt : Parser[BlockStmt] = "{" ~> rep(stmt) <~ "}" ^^
+    {(stmtList : List[Stmt]) => BlockStmt(stmtList)}
 
-  def forStmt = "for" ~ ident ~ "in" ~ expr ~ blockStmt
+  def callStmt : Parser[CallStmt] = Expressions.callExpr ~ ";" ^^
+    {case e ~ ";" => CallStmt(e)}
 
-  def ifStmt = "if" ~ expr ~ blockStmt ~ opt("else" ~ blockStmt)
+  def forStmt : Parser[ForStmt] = "for" ~ ident ~ "in" ~ expr ~ blockStmt ^^
+    { case "for" ~ id ~ "in" ~ e ~ bs => ForStmt(VarId(id),e,bs)}
 
-  def returnStmt = "->" ~ opt(expr) ~ ";"
+  def ifStmt : Parser[IfStmt] = "if" ~ expr ~ blockStmt ~ opt("else" ~> blockStmt)^^
+    { case "if" ~ e ~ bs ~ optBs => IfStmt(e, bs, optBs)}
 
-  def whileStmt = "while" ~ expr ~ blockStmt
+  def returnStmt : Parser[ReturnStmt] = "->" ~ opt(expr)  ~ ";"  ^^
+    { case "->" ~ optExpr ~ ";" => ReturnStmt(optExpr)}
+
+  def whileStmt = "while" ~ expr ~ blockStmt ^^ { case "while" ~ e ~ bs => WhileStmt(e, bs)}
 
   // wrap expressions into an object, expressionN, where the lower N the higher
   // precedence
   object Expressions {
     // parentheses and literals
-    lazy val expr1: PackratParser[Any] = (ident | literal | "(" ~> expr9 <~ ")")
+    lazy val expr1: PackratParser[Expression] = ident ^^ {(id : String) => VarId(id)} | literal | "(" ~> expr9 <~ ")"
 
     // postfix call, cast , field and subscript
-    lazy val callExpr = expr1 ~ ("(" ~> repsep(expr9, ",") <~ ")")
-    lazy val castExpr = expr2 ~ (":" ~> typ)
-    lazy val fieldExpr = expr2 ~ "." ~> ident
-    lazy val subscriptExpr = expr2 ~ ("[" ~> expr9 <~ "]")
-    lazy val expr2: PackratParser[Any] = callExpr | castExpr | subscriptExpr | fieldExpr | expr1
+    lazy val callExpr : PackratParser[CallExpr] = expr1 ~ ("(" ~> repsep(expr9, ",") <~ ")") ^^
+      { case callee ~ paramList => CallExpr(callee, paramList)}
+    lazy val castExpr : PackratParser[CastExpr] = expr2 ~ (":" ~> typ) ^^ { case e ~ t => CastExpr(e, t)}
+    lazy val fieldExpr : PackratParser[FieldExpr] = expr2 ~ "." ~ ident ^^ { case e ~ "." ~ id => FieldExpr(e, FieldId(id))}
+    lazy val subscriptExpr : PackratParser[SubscriptExpr] = expr2 ~ ("[" ~> expr9 <~ "]") ^^ {case left ~ right => SubscriptExpr(left, right)}
+    lazy val expr2: PackratParser[Expression] = callExpr | castExpr | subscriptExpr | fieldExpr | expr1
 
     // prefix operator ! and -
-    lazy val expr3: PackratParser[Any] = {
-      lazy val not = "!" ~> expr3
-      lazy val minus = "-" ~> expr3
+    lazy val expr3: PackratParser[Expression] = {
+      lazy val not = "!" ~> expr3 ^^ { PrefixExpr("!", _)}
+      lazy val minus = "-" ~> expr3 ^^ {PrefixExpr("-", _)}
       not | minus | expr2
     }
 
     // create a parser using an expression with equal precedence and another expression
     // with higher precedence
-    def makeParser(eqPrecedence: PackratParser[Any], higherPrecedence: PackratParser[Any])(ops: String*) = {
+    def makeParser(eqPrecedence: PackratParser[Expression], higherPrecedence: PackratParser[Expression])(ops: String*) = {
       // create a parser for each operators in the list
       val opsParsers = ops.toList map {
-        (str) => eqPrecedence <~ str ~ higherPrecedence
+        (str) => eqPrecedence ~ str ~ higherPrecedence ^^ { case left ~ op ~ right => InfixExpr(op, left,right)}
       }
       // combine those parsers to form alternatives
       opsParsers.reduceLeft(_ | _) | higherPrecedence
     }
 
     // expressions with difference precedence
-    lazy val expr4: PackratParser[Any] = makeParser(expr4, expr3)("*", "/", "%")
-    lazy val expr5: PackratParser[Any] = makeParser(expr5, expr4)("+", "-")
-    lazy val expr6: PackratParser[Any] = makeParser(expr6, expr5)("<=", "<", ">=", ">")
-    lazy val expr7: PackratParser[Any] = makeParser(expr7, expr6)("==", "!=")
-    lazy val expr8: PackratParser[Any] = makeParser(expr8, expr7)("&&")
-    lazy val expr9: PackratParser[Any] = makeParser(expr9, expr8)("||")
+    lazy val expr4: PackratParser[Expression] = makeParser(expr4, expr3)("*", "/", "%")
+    lazy val expr5: PackratParser[Expression] = makeParser(expr5, expr4)("+", "-")
+    lazy val expr6: PackratParser[Expression] = makeParser(expr6, expr5)("<=", "<", ">=", ">")
+    lazy val expr7: PackratParser[Expression] = makeParser(expr7, expr6)("==", "!=")
+    lazy val expr8: PackratParser[Expression] = makeParser(expr8, expr7)("&&")
+    lazy val expr9: PackratParser[Expression] = makeParser(expr9, expr8)("||")
   }
 
   lazy val expr = Expressions.expr9
 
-  def literal = numericLit | stringLit | arrayLit | recordLit | "true" | "false" | "null"
+  def literal = numericLit ^^ { (s : String) => IntLit(s.toInt)} |
+    stringLit ^^ { (s : String) => StringLit(s) } | arrayLit | recordLit |
+    "true" ^^^ { BoolLit(true) } | "false" ^^^ { BoolLit(false) } | "null" ^^^ {NullLit()}
 
-  def arrayLit = "[" ~ rep1sep(expr, ",") ~ "]"
+  def arrayLit = "[" ~> rep1sep(expr, ",") <~ "]" ^^
+    { (exprList : List[Expression]) => ArrayLit(exprList)}
 
-  def recordLit = "(" ~ rep1sep(fieldLit, ",") ~ ")"
+  def recordLit = "(" ~> rep1sep(fieldLit, ",") <~ ")"  ^^
+    { (fieldLitList : List[FieldLit]) => RecordLit(fieldLitList)}
 
-  def fieldLit = ident ~ "=" ~ expr
+  def fieldLit = ident ~ "=" ~ expr ^^ { case id ~ "=" ~ e => FieldLit(FieldId(id), e)}
 }
 
 object TackParser {
