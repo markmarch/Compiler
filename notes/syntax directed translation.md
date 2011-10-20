@@ -22,6 +22,8 @@ S → E1 := E2;		    S.a = new AssignStmt(E1.a, E2.a)
 </pre>
 <script src="https://gist.github.com/1299867.js?file=gistfile1.java"></script>
 
+[Rats! example Gist](https://gist.github.com/1299867)
+
 2 kinds of attributes : <strong>inherited</strong> attributes & <strong>synthesized</strong> attributes
 
 <table border ="1px" style="dotted">
