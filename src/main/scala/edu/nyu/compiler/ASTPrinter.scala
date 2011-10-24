@@ -1,7 +1,7 @@
 package edu.nyu.compiler
 
 import scala.io.Source
-import java.io.FileNotFoundException
+import java.io.{FileFilter, File, FileNotFoundException}
 
 /**
  * Created by IntelliJ IDEA.
@@ -12,16 +12,27 @@ import java.io.FileNotFoundException
  */
 
 object ASTPrinter extends TackParser {
-  def main(args : Array[String]) = {
-     try {
-      val s = Source.fromFile(args(0)).getLines.reduceLeft(_ + "\n" + _)
+  
+  class TackFileFilter extends FileFilter {
+    override def accept(f : File) : Boolean = {
+      f.getName.endsWith(".tack")
+    }
+  }
+
+  def main(args: Array[String]) = {
+    println(getAst(new File(args(0))))
+  }
+
+  def getAst(file : File) : String = {
+    try {
+      val s = Source.fromFile(file).getLines().reduceLeft(_ + "\n" + _)
       val tokens = new PackratReader(new lexical.Scanner(s))
-      phrase(program)(tokens) match{
-        case Success(program,_) => println(program.getStringRep(0))
-        case e : NoSuccess => println("Syntax error : " + e.msg)
+      phrase(program)(tokens) match {
+        case Success(program, _) => program.getStringRep(0)
+        case e: NoSuccess => "Syntax error : " + e.msg
       }
     } catch {
-      case e: FileNotFoundException => println(e.getMessage)
+      case e: FileNotFoundException => e.getMessage
     }
   }
 }
