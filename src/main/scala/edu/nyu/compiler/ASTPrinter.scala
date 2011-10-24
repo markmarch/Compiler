@@ -8,7 +8,6 @@ import java.io.{FileFilter, File, FileNotFoundException}
  * User: xiaomingjia
  * Date: 10/17/11
  * Time: 6:10 PM
- * To change this template use File | Settings | File Templates.
  */
 
 object ASTPrinter extends TackParser {
