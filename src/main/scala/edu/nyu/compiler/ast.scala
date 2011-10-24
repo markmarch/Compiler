@@ -68,7 +68,7 @@ case class InfixExpr(op : String, left : Expression, right : Expression) extends
 }
 
 case class PrefixExpr(op : String,  expr : Expression) extends Expression {
-  override def label = "PostfixExpr " + op
+  override def label = "PrefixExpr " + op
   override def children = List(expr)
 }
 
@@ -95,8 +95,6 @@ case class ParenExpr(expr : Expression) extends Expression {
 case class Program(funList : List[FunDef]) extends AstNode {
   override def children = funList
 }
-
-case object VoidType extends Type
 
 case class FunDef(id : FunId, typ : FunType, blockStmt : BlockStmt) extends AstNode {
   override def children = List(id, typ, blockStmt)
@@ -155,4 +153,3 @@ case class ReturnStmt(optExpr : Option[Expression]) extends Stmt {
 case class WhileStmt(expr : Expression, blockStmt : BlockStmt) extends Stmt {
   override def children = List(expr, blockStmt)
 }
-
