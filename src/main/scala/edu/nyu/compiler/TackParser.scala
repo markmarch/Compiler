@@ -7,8 +7,6 @@ import scala.util.parsing.combinator.syntactical.StandardTokenParsers
  * A simple parser that accepts programs written in Tack, a statically typed
  * language invented for the Compiler Construction course at NYU.
  *
- * This parser uses the parser combinator provided in the Scala library, and only
- * parse the input but does not generate AST.
  */
 trait TackParser extends StandardTokenParsers with PackratParsers with ImplicitConversions {
   // replace the default lexical with TackLexical
@@ -42,7 +40,7 @@ trait TackParser extends StandardTokenParsers with PackratParsers with ImplicitC
   def funType : Parser[FunType] = recordType ~ "->" ~ returnType ^^
     {case from ~ "->" ~ to => FunType(from, to)}
 
-  def returnType : Parser[Type] = typ | "void" ^^^ {VoidType}
+  def returnType : Parser[Type] = typ | "void" ^^^ {PrimitiveType("void")}
 
   def stmt : Parser[Stmt] = varDef | assignStmt | blockStmt | callStmt | forStmt | ifStmt | returnStmt | whileStmt
 
@@ -73,11 +71,12 @@ trait TackParser extends StandardTokenParsers with PackratParsers with ImplicitC
   // precedence
   object Expressions {
     // parentheses and literals
-    lazy val expr1: PackratParser[Expression] = ident ^^ {(id : String) => VarId(id)} | literal | "(" ~> expr9 <~ ")"
-
+    lazy val expr1: PackratParser[Expression] = ident ^^ {(id : String) => VarId(id)} | literal |
+      "(" ~> expr9 <~ ")" ^^ { (e : Expression) => ParenExpr(e)}
+    
     // postfix call, cast , field and subscript
-    lazy val callExpr : PackratParser[CallExpr] = expr1 ~ ("(" ~> repsep(expr9, ",") <~ ")") ^^
-      { case callee ~ paramList => CallExpr(callee, paramList)}
+    lazy val callExpr : PackratParser[CallExpr] = ident ~ ("(" ~> repsep(expr9, ",") <~ ")") ^^
+      { case callee ~ paramList => CallExpr(FunId(callee), paramList)}
     lazy val castExpr : PackratParser[CastExpr] = expr2 ~ (":" ~> typ) ^^ { case e ~ t => CastExpr(e, t)}
     lazy val fieldExpr : PackratParser[FieldExpr] = expr2 ~ "." ~ ident ^^ { case e ~ "." ~ id => FieldExpr(e, FieldId(id))}
     lazy val subscriptExpr : PackratParser[SubscriptExpr] = expr2 ~ ("[" ~> expr9 <~ "]") ^^ {case left ~ right => SubscriptExpr(left, right)}
@@ -116,10 +115,10 @@ trait TackParser extends StandardTokenParsers with PackratParsers with ImplicitC
     stringLit ^^ { (s : String) => StringLit(s) } | arrayLit | recordLit |
     "true" ^^^ { BoolLit(true) } | "false" ^^^ { BoolLit(false) } | "null" ^^^ {NullLit()}
 
-  def arrayLit = "[" ~> rep1sep(expr, ",") <~ "]" ^^
+  def arrayLit = "[" ~> repsep(expr, ",") <~ "]" ^^
     { (exprList : List[Expression]) => ArrayLit(exprList)}
 
-  def recordLit = "(" ~> rep1sep(fieldLit, ",") <~ ")"  ^^
+  def recordLit = "(" ~> repsep(fieldLit, ",") <~ ")"  ^^
     { (fieldLitList : List[FieldLit]) => RecordLit(fieldLitList)}
 
   def fieldLit = ident ~ "=" ~ expr ^^ { case id ~ "=" ~ e => FieldLit(FieldId(id), e)}
