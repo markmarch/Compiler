@@ -20,7 +20,6 @@ class ASTPrinterSuite extends FunSuite{
 
 
   def check(srcFile : File, correctAstFile : File) = {
-    println("checking " + srcFile.getName)
     val result = ASTPrinter.getAst(srcFile).split("\n").toList
     val expectedLines = Source.fromFile(correctAstFile).getLines().filter(_.length > 0).toList
     val comparsion = expectedLines.zip(result)
