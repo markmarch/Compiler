@@ -19,7 +19,7 @@ object ASTPrinter extends TackParser {
   }
 
   def main(args: Array[String]) = {
-    println(getAst(new File(args(0))))
+    print(getAst(new File(args(0))))
   }
 
   def getAst(file : File) : String = {
