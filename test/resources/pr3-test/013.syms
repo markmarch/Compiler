@@ -1,0 +1,6 @@
+test/013.tack:3:3: Could not resolve type for variable 'a'.
+test/013.tack:4:9: Could not resolve type for field 'c'.
+test/013.tack:4:3: Could not resolve type for variable 'b'.
+test/013.tack:5:9: Could not resolve array element type.
+test/013.tack:5:3: Could not resolve type for variable 'c'.
+There were 5 errors.

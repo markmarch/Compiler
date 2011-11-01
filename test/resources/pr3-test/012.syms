@@ -1,0 +1,6 @@
+test/012.tack:3:3: Unknown variable 'a'.
+test/012.tack:4:3: Unknown function 'b'.
+test/012.tack:6:11: Unknown field 'e'.
+test/012.tack:7:3: Function name expected.
+test/012.tack:8:3: Variable name expected.
+There were 5 errors.

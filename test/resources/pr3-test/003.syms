@@ -1,0 +1,3 @@
+Program {append, bool2int, bool2string, int2bool, int2string, length, main, newArray, newRecord, print, range, size, string2bool, string2int, stringEqual}
+  FunDef main {a, b, c, d}
+    RecordType {}

@@ -1,0 +1,9 @@
+Program {append, bool2int, bool2string, f, int2bool, int2string, length, main, newArray, newRecord, print, range, size, string2bool, string2int, stringEqual}
+  FunDef f {p, q, v}
+    RecordType {p, q}
+    ForStmt i {i}
+    BlockStmt {v}
+  FunDef main {r}
+    RecordType {}
+    RecordLit {g, h}
+    RecordType {g, h}

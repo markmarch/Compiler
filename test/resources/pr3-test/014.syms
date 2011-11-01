@@ -1,0 +1,19 @@
+test/014.tack:3:15: Boolean expected.
+test/014.tack:4:7: Boolean expected.
+test/014.tack:4:18: Boolean expected.
+test/014.tack:5:7: Cannot compare '[int]' and 'int'.
+test/014.tack:6:7: Integer expected.
+test/014.tack:6:16: Integer expected.
+test/014.tack:7:7: Integer expected.
+test/014.tack:7:15: Integer expected.
+test/014.tack:8:7: Integer expected.
+test/014.tack:8:15: Integer expected.
+test/014.tack:9:7: Integer expected.
+test/014.tack:9:15: Integer expected.
+test/014.tack:10:8: Integer expected.
+test/014.tack:11:8: Boolean expected.
+test/014.tack:12:9: Formal 's' of function 'print' expects 'string', found 'int' instead.
+test/014.tack:14:7: Base of subscript must be array.
+test/014.tack:14:9: Integer expected.
+test/014.tack:14:3: Could not resolve type for variable 'k'.
+There were 18 errors.

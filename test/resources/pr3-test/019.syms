@@ -1,0 +1,9 @@
+Program {append, bool2int, bool2string, int2bool, int2string, length, main, newArray, newRecord, print, range, size, sort, string2bool, string2int, stringEqual}
+  FunDef sort {a, n}
+    RecordType {a}
+    ForStmt iOuter {eSmallest, iOuter, iSmallest}
+      ForStmt iInner {iInner}
+        BlockStmt {}
+  FunDef main {a}
+    RecordType {}
+    ForStmt e {e}

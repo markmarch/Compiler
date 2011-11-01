@@ -1,0 +1,19 @@
+Program {append, bool2int, bool2string, eval, int2bool, int2string, length, main, newArray, newRecord, print, range, size, string2bool, string2int, stringEqual}
+  FunDef eval {expr}
+    RecordType {expr}
+      RecordType {o}
+    BlockStmt {e}
+      RecordType {l, o, r}
+        RecordType {o}
+        RecordType {o}
+    BlockStmt {e}
+      RecordType {l, o, r}
+        RecordType {o}
+        RecordType {o}
+  FunDef main {result, tree}
+    RecordType {}
+    RecordLit {l, o, r}
+      RecordLit {l, o, r}
+        RecordLit {o}
+        RecordLit {o}
+      RecordLit {o}

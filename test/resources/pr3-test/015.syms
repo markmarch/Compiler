@@ -1,0 +1,7 @@
+test/015.tack:4:3: Cannot assign to '(x : int, y : int)' from '(x : int)'.
+test/015.tack:5:3: Subject of for-loop must be array.
+test/015.tack:8:3: Could not resolve type for variable 'i'.
+test/015.tack:11:6: Boolean expected.
+test/015.tack:14:9: Boolean expected.
+test/015.tack:17:3: Expected return value of type 'int', found 'void'.
+There were 6 errors.

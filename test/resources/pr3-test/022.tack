@@ -1,0 +1,14 @@
+# Scopes and symbols
+f = fun (p : int, q : int) -> void {
+  v = p + q;
+  for i in [1,2,3] {
+    v := v + 10;
+  }
+  { v = 0; }
+  print(v : string);
+}
+main = fun () -> int {
+  r = (g = 4, h = 5) : (g : int, h : int);
+  f(10, 10);
+  -> 0;
+}

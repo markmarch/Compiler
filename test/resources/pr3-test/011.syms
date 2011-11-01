@@ -1,0 +1,9 @@
+Program {append, bool2int, bool2string, int2bool, int2string, length, main, newArray, newRecord, ping, pong, print, range, size, string2bool, string2int, stringEqual}
+  FunDef ping {i}
+    RecordType {i}
+    BlockStmt {}
+  FunDef pong {i}
+    RecordType {i}
+    BlockStmt {}
+  FunDef main {}
+    RecordType {}

@@ -1,0 +1,9 @@
+Program {append, bool2int, bool2string, int2bool, int2string, iterativeFactorial, length, main, newArray, newRecord, print, range, recursiveFactorial, size, string2bool, string2int, stringEqual}
+  FunDef recursiveFactorial {i}
+    RecordType {i}
+    BlockStmt {}
+  FunDef iterativeFactorial {i, result}
+    RecordType {i}
+    BlockStmt {}
+  FunDef main {}
+    RecordType {}

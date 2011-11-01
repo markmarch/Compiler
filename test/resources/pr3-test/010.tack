@@ -1,0 +1,8 @@
+# Composite types
+main = fun () -> int {
+  a = [1, 2] : [int];
+  b = (x=1, y="Y") : (x:int, y:string);
+  c = (z=[1,2,3], q=(r=[4,5], s=6)) : (z:[int], q:(r:[int], s:int));
+  d = null : (x:int, y:string);
+  -> 0;
+}

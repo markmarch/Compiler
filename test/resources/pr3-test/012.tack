@@ -1,0 +1,10 @@
+# Unknown identifiers and wrong usage
+main = fun () -> int {
+  a := 1;
+  b("hello");
+  c = ( d = "world" );
+  print(c.e);
+  c("hello");
+  main := 2;
+  -> 0;
+}

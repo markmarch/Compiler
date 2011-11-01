@@ -1,0 +1,26 @@
+# Statements
+main = fun () -> int {
+  x = 1;
+  x := x + 1;
+  if true {
+    print("a\n");
+  } else {
+    print("b\n");
+  }
+  {
+    while false {
+      print("c\n");
+    }
+    for x in ["e", "f", "g"] {
+      print(x);
+    }
+  }
+  while true {
+    print("h\n");
+    if true {
+      print("i\n");
+      -> 0;
+    }
+  }
+  -> 0;
+}

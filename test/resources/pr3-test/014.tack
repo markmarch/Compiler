@@ -1,0 +1,16 @@
+# Semantic errors in expressions
+main = fun () -> int {
+  a = true || 1;
+  b = "false" && 2;
+  c = [1,2] == 3;
+  d = "one" <= "two";
+  e = [1,2] + [3,4];
+  f = "one" - "two";
+  g = "one" * "two";
+  h = -false;
+  i = !1;
+  print(5);
+  j = 1;
+  k = j["one"];
+  -> 0;
+}

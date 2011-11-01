@@ -1,0 +1,8 @@
+test/016.tack:10:11: Expected element of type '(x : int, y : int)', found '(x : int)'.
+test/016.tack:11:11: Expected element of type '(x : int)', found '(x : int, y : int)'.
+test/016.tack:12:11: Expected element of type '(x : int, y : int)', found '(y : int, x : int)'.
+test/016.tack:13:3: Cannot assign to '(x : int, y : int)' from '(x : int)'.
+test/016.tack:14:3: Cannot assign to '(x : int, y : int)' from '(y : int, x : int)'.
+test/016.tack:15:8: Cannot cast from type '(x : int, y : int)' to type '(y : int, x : int)'.
+test/016.tack:16:8: Cannot cast from type '(x : int)' to type '(y : int, x : int)'.
+There were 7 errors.

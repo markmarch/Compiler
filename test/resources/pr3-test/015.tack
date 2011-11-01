@@ -1,0 +1,18 @@
+# Semantic errors in statements
+main = fun () -> int {
+  a = (x=1, y=2);
+  a := (x=1);
+  for i in a {
+    print("hola");
+  }
+  for i in [ ] {
+    print("nihau");
+  }
+  if 0 {
+    print("namaskar");
+  }
+  while 1 {
+    print("hallo");
+  }
+  ->;
+}
