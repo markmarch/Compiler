@@ -72,7 +72,7 @@ case class PrefixExpr(op : String,  expr : Expression) extends Expression {
   override def children = List(expr)
 }
 
-case class CallExpr(callee : Expression, paramList : List[Expression]) extends Expression {
+case class CallExpr(callee : FunId, paramList : List[Expression]) extends Expression {
   override def children = callee :: paramList
 }
 
