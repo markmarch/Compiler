@@ -53,7 +53,7 @@ trait ScopeAnalyzer {
   val intrinsicFunctionList = intrinsicFunctionDes.map(
     (f: Tuple3[String, Type, List[Tuple2[String, Type]]]) => new TackSymbol(null, f._1, FunType(mkRecordType(f._3), f._2)))
 
-  def analyzeScope(program : Program) : Result = {
+  def analyzeScope(program: Program): Result = {
     val table = createSymbolTable(program)
     val result = new Result(table, new ListBuffer[String])
     program.funList.foreach(analyzeScope(_, result))
@@ -111,15 +111,15 @@ trait ScopeAnalyzer {
     result
   }
 
-  def defineSymbol(r: Result, s: TackSymbol){
-      if (r.table.currentScope.contains(s.name)) {
-        r.errors += "multiple definition of " + s.name
-      } else {
-        r.table.currentScope.define(s)
-      }
+  def defineSymbol(r: Result, s: TackSymbol) {
+    if (r.table.currentScope.contains(s.name)) {
+      r.errors += "multiple definition of " + s.name
+    } else {
+      r.table.currentScope.define(s)
     }
+  }
 
-    def createSymbolTable(program: Program): SymbolTable = {
+  def createSymbolTable(program: Program): SymbolTable = {
     val topLevelScope = new Scope(program, null);
     // add all intrinsic functions to top level
     intrinsicFunctionList.foreach(topLevelScope.define(_))
