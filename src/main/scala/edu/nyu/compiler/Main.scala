@@ -1,7 +1,7 @@
 package edu.nyu.compiler
 
 import io.Source
-import java.io.{FileNotFoundException, File}
+import java.io.{FileFilter, FileNotFoundException, File}
 
 /**
  * Created by IntelliJ IDEA.
@@ -13,12 +13,22 @@ import java.io.{FileNotFoundException, File}
 object Main extends TackParser {
 
   def main(args: Array[String]) {
-    val file = new File("test/resources/pr3-test/001.tack")
+    // val fileList = List(new File("test/sample.tack"))
+    val fileList = new File("test/resources/pr3-test").listFiles(new FileFilter(){
+      override def accept(f : File)  = {
+        f.getName.endsWith(".tack")
+      }
+    })
+
+    fileList.foreach(process)
+  }
+
+  def process(file: File) {
     try {
       val s = Source.fromFile(file).getLines().reduceLeft(_ + "\n" + _)
       val tokens = new PackratReader(new lexical.Scanner(s))
       val result = phrase(program)(tokens)
-      val mileStone = 2
+      val mileStone = 3
       mileStone match {
         case 1 => checkSyntax(result)
         case 2 => printAst(result)
@@ -40,7 +50,9 @@ object Main extends TackParser {
   }
 
   def semanticAnalyze(result: ParseResult[Program]) = result match {
-    case Success(program, _) => println(program.getStringRep(0))
+    case Success(program, _) => {
+      SemanticAnalyzer.analyze(program)
+    }
     case e: NoSuccess => println("Syntax error: " + e.msg)
   }
 }
