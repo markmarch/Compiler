@@ -1,35 +1,69 @@
 package edu.nyu.compiler
 
 import collection.mutable.{Stack, HashMap, ListBuffer}
+import annotation.tailrec
 
 
-class Symbol(val definition : AstNode, val name : String, val typ : Type)
+class TackSymbol(val definition: AstNode, val name: String, var typ: Type) {
+  override def toString = name + ":" + typ.toString
+}
 
-class Scope(val owner : AstNode, val parent : Scope) {
+
+class Scope(val owner: AstNode, val parent: Scope) {
+  val indentation = "  ";
+
   val children = new ListBuffer[Scope]()
-  val symbols = new HashMap[String, Symbol]()
-  
-  def define(symbol : Symbol) = symbols += (symbol.name -> symbol)
+  val symbols = new HashMap[String, TackSymbol]()
 
-  def contains(symbolName : String) = symbols.keySet.contains(symbolName)
+  def define(symbol: TackSymbol) = {
+    symbols += (symbol.name -> symbol)
+  }
 
-  def get(symbolName : String) = symbols.get(symbolName)
+  def contains(symbolName: String) = symbols.keySet.contains(symbolName)
 
-  def print(indent : Int) = {
+  def get(symbolName: String) = symbols.get(symbolName)
 
+  def getStringRep(level: Int): String = {
+    val symbolsDefined = symbols.keys.toList.sortWith(_ < _).mkString("{", ", ", "}")
+    val scopeDefined = children.map(_.getStringRep(level + 1)).mkString("")
+    val label = owner match {
+      case forStmt: ForStmt => forStmt.label + " " + forStmt.varId.name
+      case funDef: FunDef => funDef.label + " " + funDef.id.name
+      case _ => owner.label
+    }
+    indentation * level + label + " " + symbolsDefined + "\n" + scopeDefined
   }
 }
 
-class SymbolTable(val topLevel : Scope){
-  val scopes = new Stack[Scope]()
-  val currentScope = topLevel
-  
-  scopes.push(topLevel)
-  
-  def pop() : Scope = scopes.pop()
-  
-  def push(scope : Scope) = scopes.push(scope)
+class SymbolTable(val topLevel: Scope) {
+  var scopes = List(topLevel)
+  var currentScope = topLevel
 
-  def print() = {}
 
+  def pop(): Scope = {
+    val head = scopes.head
+    scopes = scopes.tail
+    currentScope = scopes.head
+    head
+  }
+
+  def push(scope: Scope) = {
+    currentScope.children += scope
+    currentScope = scope
+    scopes = scope :: scopes
+  }
+
+  override def toString = {
+    topLevel.getStringRep(0)
+  }
+
+  def lookup(name: String): Option[TackSymbol] = {
+    @tailrec
+    def lookupInScope(l: List[Scope]): Option[TackSymbol] = l match {
+      case Nil => None
+      case x :: xs if x.contains(name) => x.get(name)
+      case x :: xs => lookupInScope(xs)
+    }
+    lookupInScope(scopes)
+  }
 }
