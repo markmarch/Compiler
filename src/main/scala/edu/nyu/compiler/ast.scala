@@ -1,6 +1,7 @@
 package edu.nyu.compiler
 
 sealed abstract class AstNode {
+  var scope: Scope = _
   val indent = "  " // two space indentation
   def label : String = this.getClass.getSimpleName
   def children : List[AstNode] = Nil
@@ -102,6 +103,8 @@ case class FunDef(id : FunId, typ : FunType, blockStmt : BlockStmt) extends AstN
 
 case class RecordType(fieldTypeList : List[FieldType]) extends Type {
   override def children = fieldTypeList
+  
+  override def toString = fieldTypeList.map(f => f.toString).mkString("(", ",", ")")
 }
 
 case class FunType(fromType : RecordType, returnType : Type) extends Type  {
@@ -110,16 +113,24 @@ case class FunType(fromType : RecordType, returnType : Type) extends Type  {
 
 case class ArrayType(typ : Type) extends Type {
   override def children = List(typ)
+  
+  override def toString = "[" + typ.toString + "]"
 }
 
 case class FieldType(fieldId : FieldId, typ : Type)  extends Type {
   override def children = List(fieldId, typ)
+
+  override def toString = fieldId.name + " : " + typ.toString
 }
 
-case class NullType() extends Type
+case class NullType() extends Type {
+  override def toString = "null"
+}
 
 case class PrimitiveType (name : String) extends Type with HasName {
   override def label = "PrimitiveType " + name
+
+  override def toString = name
 }
 
 case class VarDef(varId : VarId, expr : Expression) extends Stmt {
