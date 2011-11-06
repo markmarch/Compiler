@@ -15,6 +15,9 @@ class Scope(val owner: AstNode, val parent: Scope) {
   val children = new ListBuffer[Scope]()
   val symbols = new HashMap[String, TackSymbol]()
 
+  // insert the scope to the ast node
+  owner.scope = this
+
   def define(symbol: TackSymbol) = {
     symbols += (symbol.name -> symbol)
   }
