@@ -60,7 +60,7 @@ trait ScopeAnalyzer {
   }
 
   def analyzeScope(node: AstNode, result: Result): Result = {
-    var table = result.table
+    val table = result.table
     node match {
       case fun: FunDef => {
         table.topLevel.define(new TackSymbol(fun, fun.id.name, fun.typ))
