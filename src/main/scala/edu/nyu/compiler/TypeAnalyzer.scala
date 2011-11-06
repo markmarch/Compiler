@@ -2,7 +2,7 @@ package edu.nyu.compiler
 
 import edu.nyu.compiler.TypeAnalyzer.RichType
 import annotation.tailrec
-import collection.mutable.ListBuffer
+import collection.mutable.{Stack, ListBuffer}
 
 /**
  * Created by IntelliJ IDEA.
@@ -20,22 +20,22 @@ object TypeAnalyzer {
     def isSameType(t: Type) = typ == t
 
     def isSubType(t: Type) = {
-      if (typ == NullType || isSameType(t))
+      if (typ.isInstanceOf[NullType] || isSameType(t))
         true
-      else if (!typ.isInstanceOf[RecordType] || !t.isInstanceOf[RecordType])
-        false
-      else {
+      else if (typ.isInstanceOf[NullType] && t.isInstanceOf[RecordType])
+        true
+      else if (typ.isInstanceOf[RecordType] && t.isInstanceOf[RecordType]){
         val listA = typ.asInstanceOf[RecordType].fieldTypeList
         val listB = t.asInstanceOf[RecordType].fieldTypeList
         if (listA.length < listB.length) false else isPrefix(listA, listB)
-      }
+      } else false
     }
 
     def isSuperType(t: Type) = t isSubType typ
 
-    def isCastable(t: Type) = {
-      t match {
-        case p: PrimitiveType => typ.isInstanceOf[PrimitiveType]
+    def canCastTo(t: Type) = {
+      typ match {
+        case p: PrimitiveType => t.isInstanceOf[PrimitiveType]
         case _ => isSubType(t) || isSuperType(t)
       }
     }
@@ -73,6 +73,7 @@ class TypeAnalyzer extends ScopeAnalyzer {
         checkType(program)
         if (!errors.isEmpty)
           errors.foreach(println)
+        else println(symbolTable.topLevel.getStringRep(0))
       }
       case errors => errors.foreach(println)
     }
@@ -99,13 +100,13 @@ class TypeAnalyzer extends ScopeAnalyzer {
   }
 
   def checkFunDef(funDef: FunDef): Unit = {
-    symbolTable.push(funDef.scope)
+    symbolTable.push(funDef.scope, false)
     funDef.blockStmt.stmtList.foreach(checkType)
     symbolTable.pop()
   }
 
   def checkBlockStmt(blockStmt: BlockStmt): Unit = {
-    symbolTable.push(blockStmt.scope)
+    symbolTable.push(blockStmt.scope, false)
     blockStmt.stmtList.foreach(checkType)
     symbolTable.pop()
   }
@@ -122,14 +123,14 @@ class TypeAnalyzer extends ScopeAnalyzer {
     if (isLeftValue(left)) {
       val name = getVariableName(left)
       symbolTable.lookup(name) match {
-        case Some(s) if s.definition.isInstanceOf[VarDef] =>
+        case Some(s) if s.definition == null || s.definition.isInstanceOf[FunDef] => error("Variable name expected, found : '" + name + "'")
+        case Some(s) =>
           (getType(left), getType(right)) match {
             case (Right(l), Right(r)) => if (!(r isSubType l)) error("Cannot  assign " + l.toString + " from " + r.toString)
             case (l@Left(e), _) => e.foreach(error)
             case (_, l@Left(e)) => e.foreach(error)
           }
         case None => error("Unknow variable '" + name)
-        case _ => error("Variable name expected")
       }
     } else {
       error("Variable name expected")
@@ -152,7 +153,7 @@ class TypeAnalyzer extends ScopeAnalyzer {
   }
 
   def checkForStmt(forStmt: ForStmt): Unit = {
-    symbolTable.push(forStmt.scope)
+    symbolTable.push(forStmt.scope, false)
     getType(forStmt.expr) match {
       case Right(ArrayType(t)) => symbolTable.lookup(forStmt.varId.name).get.typ = t
       case Right(t) => error("Subject of for-loop must be array ")
@@ -175,8 +176,11 @@ class TypeAnalyzer extends ScopeAnalyzer {
   }
 
   def checkReturnStmt(returnStmt: ReturnStmt) = {
-    val funType = symbolTable.currentScope.owner.asInstanceOf[FunDef].typ
-    val returnType = funType.returnType
+    val funDef = symbolTable.lookupFunDef(symbolTable.currentScope) match {
+      case Some(f) => f
+      case _ => throw new IllegalStateException("Unexpected return statemnte")
+    }
+    val returnType = funDef.typ.returnType
     returnStmt.optExpr match {
       case None => {
         if (returnType != PrimitiveType("void"))
@@ -245,7 +249,7 @@ class TypeAnalyzer extends ScopeAnalyzer {
       case Right(t) => getType(right) match {
         case Right(PrimitiveType("int")) => Left(List("Base of subscript must be array"))
         case Right(t) => Left(List("Base of subscript must be array", "Integer expected"))
-        case l  => l
+        case l => l
       }
       case l@Left(e) => l
     }
@@ -278,7 +282,7 @@ class TypeAnalyzer extends ScopeAnalyzer {
       case "==" | "!=" => (getType(left), getType(right)) match {
         case (Right(NullType()), _) | (_, Right(NullType())) => Right(PrimitiveType("bool"))
         case (Right(l), Right(r)) => {
-          if ((l isSameType r) || (l isCastable r))
+          if ((l isSameType r) || (l canCastTo r))
             Right(PrimitiveType("bool"))
           else Left(List("Can't compare '" + l.toString + "' to '" + r.toString + "'"))
         }
@@ -322,7 +326,7 @@ class TypeAnalyzer extends ScopeAnalyzer {
   def getCastExprType(expr: Expression, typ: Type) = {
     getType(expr) match {
       case Right(t) => {
-        if (t isCastable typ)
+        if (t canCastTo typ)
           Right(typ)
         else
           Left(List("Can't cast from type " + t.toString + " to type " + typ.toString))
@@ -341,15 +345,22 @@ class TypeAnalyzer extends ScopeAnalyzer {
         val paramTypeList = paramList.map(getType)
         val valid = !paramTypeList.exists(_.isLeft)
         if (valid && from.fieldTypeList.size == paramTypeList.size) {
-          // check if actual parameters' type conforms function formal parameters' type
-          val list = from.fieldTypeList.zip(paramTypeList.map(_.right.get))
-          val e = for ((expected, found) <- list if !found.isSameType(expected.typ) && !found.isSubType(expected.typ)) yield "Formal '" +
-            expected.fieldId.name + "' of function '" + callee.name + "' expectes '" + expected.typ.toString + "' found '" + found.toString + "' instead"
+          val actualParamTypes = paramTypeList.map(_.right.get)
+          callee.name match {
+            case "size" => {
+              if (actualParamTypes.size == 1 && actualParamTypes.head.isInstanceOf[ArrayType])
+                Right(int)
+              else Left(List("Formal 'a' of function size expectes type array, found " + actualParamTypes.mkString("(", ",", ")") + " instead"))
+            }
+            case _ => {
+              // check if actual parameters' type conforms function formal parameters' type
+              val list = from.fieldTypeList.zip(actualParamTypes)
+              val e = for ((expected, found) <- list if !found.isSameType(expected.typ) && !found.isSubType(expected.typ)) yield "Formal '" +
+                expected.fieldId.name + "' of function '" + callee.name + "' expectes '" + expected.typ.toString + "' found '" + found.toString + "' instead"
 
-          if (e.isEmpty)
-            Right(to)
-          else {
-            Left(e.reverse)
+              if (e.isEmpty) Right(to)
+              else Left(e.reverse)
+            }
           }
         } else if (valid) {
           Left(List("Wrong number of arguments for funciton '" + callee.name))
