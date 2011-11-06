@@ -13,6 +13,6 @@ object SemanticAnalyzer{
 
   def analyze(program : Program) = {
     new TypeAnalyzer().analyze(program)
-    println("\n---------------------------")
+    println("---------------------------")
   }
 }
