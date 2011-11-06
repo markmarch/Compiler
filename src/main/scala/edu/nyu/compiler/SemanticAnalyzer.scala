@@ -11,7 +11,7 @@ import collection.mutable.ListBuffer
 
 object SemanticAnalyzer{
 
-  def analyze(program : Program) = {
+  def analyze(program : Program) {
     new TypeAnalyzer().analyze(program)
     println("---------------------------")
   }

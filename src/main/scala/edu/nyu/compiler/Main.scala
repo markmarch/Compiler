@@ -44,20 +44,26 @@ object Main extends TackParser {
     }
   }
 
-  def checkSyntax(result: ParseResult[Program]) = result match {
-    case Success(_, _) =>
-    case e: NoSuccess => println("Syntax error : " + e.msg)
-  }
-
-  def printAst(result: ParseResult[Program]) = result match {
-    case Success(program, _) => println(program.getStringRep(0))
-    case e: NoSuccess => println("Syntax error: " + e.msg)
-  }
-
-  def semanticAnalyze(result: ParseResult[Program]) = result match {
-    case Success(program, _) => {
-      SemanticAnalyzer.analyze(program)
+  def checkSyntax(result: ParseResult[Program]) {
+    result match {
+      case Success(_, _) =>
+      case e: NoSuccess => println("Syntax error : " + e.msg)
     }
-    case e: NoSuccess => println("Syntax error: " + e.msg)
+  }
+
+  def printAst(result: ParseResult[Program]) {
+    result match {
+      case Success(program, _) => println(program.getStringRep(0))
+      case e: NoSuccess => println("Syntax error: " + e.msg)
+    }
+  }
+
+  def semanticAnalyze(result: ParseResult[Program]) {
+    result match {
+      case Success(program, _) => {
+        SemanticAnalyzer.analyze(program)
+      }
+      case e: NoSuccess => println("Syntax error: " + e.msg)
+    }
   }
 }

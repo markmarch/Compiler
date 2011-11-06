@@ -60,11 +60,11 @@ class TypeAnalyzer extends ScopeAnalyzer {
   var symbolTable: SymbolTable = _
   var errors = new ListBuffer[String]
 
-  def error(msg: String) = {
+  def error(msg: String) {
     errors.append(msg)
   }
 
-  def analyze(program: Program) = {
+  def analyze(program: Program) {
     val scopeAnalyzeResult = analyzeScope(program)
     scopeAnalyzeResult.errors match {
       case list if list.isEmpty => {
@@ -74,11 +74,11 @@ class TypeAnalyzer extends ScopeAnalyzer {
           errors.foreach(println)
         else println(symbolTable.topLevel.getStringRep(0))
       }
-      case errors => errors.foreach(println)
+      case e => e.foreach(println)
     }
   }
 
-  def checkType(node: AstNode): Unit = {
+  def checkType(node: AstNode) {
     node match {
       case p: Program => checkProgram(p)
       case f: FunDef => checkFunDef(f)
@@ -94,30 +94,30 @@ class TypeAnalyzer extends ScopeAnalyzer {
     }
   }
 
-  def checkProgram(program: Program): Unit = {
+  def checkProgram(program: Program) {
     program.funList.foreach(checkType)
   }
 
-  def checkFunDef(funDef: FunDef): Unit = {
+  def checkFunDef(funDef: FunDef) {
     symbolTable.push(funDef.scope, false)
     funDef.blockStmt.stmtList.foreach(checkType)
     symbolTable.pop()
   }
 
-  def checkBlockStmt(blockStmt: BlockStmt): Unit = {
+  def checkBlockStmt(blockStmt: BlockStmt) {
     symbolTable.push(blockStmt.scope, false)
     blockStmt.stmtList.foreach(checkType)
     symbolTable.pop()
   }
 
-  def checkVarDef(varDef: VarDef) = {
+  def checkVarDef(varDef: VarDef) {
     getType(varDef.expr) match {
       case Right(t) => symbolTable.lookup(varDef.varId.name).get.typ = t
       case Left(e) => ("Could not resolve type for varialbe '" + varDef.varId.name + "'" :: e).reverse.foreach(error)
     }
   }
 
-  def checkAssignStmt(assignStmt: AssignStmt) = {
+  def checkAssignStmt(assignStmt: AssignStmt) {
     val (left, right) = (assignStmt.left, assignStmt.right)
     if (isLeftValue(left)) {
       val name = getVariableName(left)
@@ -144,14 +144,14 @@ class TypeAnalyzer extends ScopeAnalyzer {
   }
 
 
-  def checkCallStmt(callStmt: CallStmt) = {
+  def checkCallStmt(callStmt: CallStmt) {
     getType(callStmt.expr) match {
       case Right(t) =>
       case Left(e) => e.foreach(error)
     }
   }
 
-  def checkForStmt(forStmt: ForStmt): Unit = {
+  def checkForStmt(forStmt: ForStmt) {
     symbolTable.push(forStmt.scope, false)
     getType(forStmt.expr) match {
       case Right(ArrayType(t)) => symbolTable.lookup(forStmt.varId.name).get.typ = t
@@ -161,7 +161,7 @@ class TypeAnalyzer extends ScopeAnalyzer {
     symbolTable.pop()
   }
 
-  def checkIfStmt(ifStmt: IfStmt) = {
+  def checkIfStmt(ifStmt: IfStmt) {
     getType(ifStmt.expr) match {
       case Right(PrimitiveType("bool")) =>
       case Right(t) => error("Boolean expected")
@@ -174,7 +174,7 @@ class TypeAnalyzer extends ScopeAnalyzer {
     }
   }
 
-  def checkReturnStmt(returnStmt: ReturnStmt) = {
+  def checkReturnStmt(returnStmt: ReturnStmt) {
     val funDef = symbolTable.lookupFunDef(symbolTable.currentScope) match {
       case Some(f) => f
       case _ => throw new IllegalStateException("Unexpected return statement")
@@ -185,7 +185,7 @@ class TypeAnalyzer extends ScopeAnalyzer {
         if (returnType != PrimitiveType("void"))
           error("Expected return value of type'" + returnType.toString + "', found 'void'")
       }
-      case Some(e) => getType(e) match {
+      case Some(expr) => getType(expr) match {
         case Right(t) => {
           if (!(t isSubType returnType))
             error(typeMismatch(returnType, t))
@@ -195,7 +195,7 @@ class TypeAnalyzer extends ScopeAnalyzer {
     }
   }
 
-  def checkWhileStmt(whileStmt: WhileStmt) = {
+  def checkWhileStmt(whileStmt: WhileStmt) {
     getType(whileStmt.expr) match {
       case Right(PrimitiveType("bool")) =>
       case Right(t) => error("Boolean expected")
@@ -216,7 +216,7 @@ class TypeAnalyzer extends ScopeAnalyzer {
   }
 
   // get type for an expression
-  def getType(expr: Expression): Either[List[String], Type] = expr match {
+  def getType(expression: Expression): Either[List[String], Type] = expression match {
     case id: VarId => symbolTable.lookup(id.name) match {
       case None => Left(List("Unknown variable '" + id.name + "'"))
       case Some(s) if s.typ != null => Right(s.typ)
@@ -245,7 +245,7 @@ class TypeAnalyzer extends ScopeAnalyzer {
         case Right(t) => Left(List("Integer expected"))
         case l => l
       }
-      case Right(t) => getType(right) match {
+      case Right(typ) => getType(right) match {
         case Right(PrimitiveType("int")) => Left(List("Base of subscript must be array"))
         case Right(t) => Left(List("Base of subscript must be array", "Integer expected"))
         case l => l

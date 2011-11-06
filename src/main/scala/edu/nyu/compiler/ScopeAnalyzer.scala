@@ -20,8 +20,8 @@ trait ScopeAnalyzer {
 
   implicit def string2Type(str: String) = PrimitiveType(str)
 
-  def mkRecordType(list: List[Tuple2[String, Type]]) = {
-    RecordType(list.map((r: Tuple2[String, Type]) => FieldType(FieldId(r._1), r._2)))
+  def mkRecordType(list: List[(String, Type)]) = {
+    RecordType(list.map((r: (String, Type)) => FieldType(FieldId(r._1), r._2)))
   }
 
   def int(id: String) = (id, PrimitiveType("int"))
@@ -33,7 +33,7 @@ trait ScopeAnalyzer {
   val fieldPlaceHolder = List()
   val recordPlaceHolder = RecordType(fieldPlaceHolder)
 
-  val intrinsicFunctionDes: List[Tuple3[String, Type, List[Tuple2[String, Type]]]] = List(
+  val intrinsicFunctionDes: List[(String, Type, List[(String, Type)])] = List(
     ("append", "string", List(string("lhs"), string("rhs"))),
     ("bool2int", "int", List(bool("b"))),
     ("bool2string", "string", List(bool("b"))),
