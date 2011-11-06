@@ -239,7 +239,8 @@ class TypeAnalyzer extends ScopeAnalyzer {
     getType(left) match {
       case Right(a: ArrayType) => getType(right) match {
         case Right(PrimitiveType("int")) => Right(a.typ)
-        case Left(e) => Left("Integer expected" :: e)
+        case Right(t) => Left(List("Integer expected"))
+        case l => l
       }
       case Right(t) => getType(right) match {
         case Right(PrimitiveType("int")) => Left(List("Base of subscript must be array"))
@@ -335,9 +336,8 @@ class TypeAnalyzer extends ScopeAnalyzer {
     funDefSymbol match {
       case None => Left(List("Unknown function '" + callee.name + "'"))
       case Some(s) if s.definition == null || s.definition.isInstanceOf[FunDef] => {
-        val (from, to) = s.typ match {
-          case FunType(f: RecordType, t: Type) => (f, t)
-        }
+        val funType = s.typ.asInstanceOf[FunType]
+        val (from, to) = (funType.fromType, funType.returnType)
         val paramTypeList = paramList.map(getType)
         val valid = !paramTypeList.exists(_.isLeft)
         if (valid && from.fieldTypeList.size == paramTypeList.size) {
