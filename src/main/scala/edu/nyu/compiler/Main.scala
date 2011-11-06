@@ -14,18 +14,22 @@ object Main extends TackParser {
 
   def main(args: Array[String]) {
     val dir = "test/resources/pr3-test/"
-    val fileList = List("012", "013", "014", "015", "016").map(name => new File(dir + name + ".tack"))
-//    val fileList = new File("test/resources/pr3-test").listFiles(new FileFilter(){
-//      override def accept(f : File)  = {
-//        f.getName.endsWith(".tack")
-//      }
-//    })
-
-    fileList.foreach(process)
+    // val fileList = List("012", "013", "014", "015", "016").map(name => new File(dir + name + ".tack"))
+    val fileList = new File("test/resources/pr3-test").listFiles(new FileFilter(){
+      override def accept(f : File)  = {
+        f.getName.endsWith(".tack")
+      }
+    })
+    // val fileList = List(new File("test/sample.tack"))
+    if (args == null || args.length == 0)
+      fileList.foreach(process)
+    else 
+      process(new File(dir + args(0)))
   }
 
   def process(file: File) {
     try {
+      println(file.getName)
       val s = Source.fromFile(file).getLines().reduceLeft(_ + "\n" + _)
       val tokens = new PackratReader(new lexical.Scanner(s))
       val result = phrase(program)(tokens)
