@@ -1,8 +1,7 @@
 package edu.nyu.compiler
 
-import edu.nyu.compiler.TypeAnalyzer.RichType
 import annotation.tailrec
-import collection.mutable.{Stack, ListBuffer}
+import collection.mutable.ListBuffer
 
 /**
  * Created by IntelliJ IDEA.
@@ -130,7 +129,7 @@ class TypeAnalyzer extends ScopeAnalyzer {
             case (l@Left(e), _) => e.foreach(error)
             case (_, l@Left(e)) => e.foreach(error)
           }
-        case None => error("Unknow variable '" + name)
+        case None => error("Unknow variable '" + name + "'")
       }
     } else {
       error("Variable name expected")
@@ -156,8 +155,8 @@ class TypeAnalyzer extends ScopeAnalyzer {
     symbolTable.push(forStmt.scope, false)
     getType(forStmt.expr) match {
       case Right(ArrayType(t)) => symbolTable.lookup(forStmt.varId.name).get.typ = t
-      case Right(t) => error("Subject of for-loop must be array ")
-      case l => error("Cant resolve type for variable " + forStmt.varId.name)
+      case Right(t) => error("Subject of for-loop must be array")
+      case l => error("Could not resolve type for variable '" + forStmt.varId.name + "'")
     }
     symbolTable.pop()
   }
@@ -178,7 +177,7 @@ class TypeAnalyzer extends ScopeAnalyzer {
   def checkReturnStmt(returnStmt: ReturnStmt) = {
     val funDef = symbolTable.lookupFunDef(symbolTable.currentScope) match {
       case Some(f) => f
-      case _ => throw new IllegalStateException("Unexpected return statemnte")
+      case _ => throw new IllegalStateException("Unexpected return statement")
     }
     val returnType = funDef.typ.returnType
     returnStmt.optExpr match {
@@ -206,7 +205,7 @@ class TypeAnalyzer extends ScopeAnalyzer {
   }
 
   def typeMismatch(expected: Type, found: Type) = {
-    "Expected return type of \"" + expected.toString + "\", found " + found.toString
+    "Expected return type of '" + expected.toString + "', found '" + found.toString + "'"
   }
 
   def isLeftValue(expr: Expression) = expr match {
@@ -221,7 +220,7 @@ class TypeAnalyzer extends ScopeAnalyzer {
     case id: VarId => symbolTable.lookup(id.name) match {
       case None => Left(List("Unknown variable '" + id.name + "'"))
       case Some(s) if s.typ != null => Right(s.typ)
-      case _ => Left(List("Can't resolve type"))
+      case _ => Left(List("Could not resolve type"))
     }
     case bool: BoolLit => Right(PrimitiveType("bool"))
     case int: IntLit => Right(PrimitiveType("int"))
@@ -260,12 +259,12 @@ class TypeAnalyzer extends ScopeAnalyzer {
       case "-" => getType(expr) match {
         case Right(PrimitiveType("int")) => Right(PrimitiveType("int"))
         case Right(t) => Left(List("Integer expected"))
-        case l@Left(e) => Left("Can't resolve type for " + expr.toString :: e)
+        case l@Left(e) => Left("Could not resolve type for " + expr.toString :: e)
       }
       case "!" => getType(expr) match {
         case Right(PrimitiveType("bool")) => Right(PrimitiveType("bool"))
         case Right(t) => Left(List("Boolean expected"))
-        case l@Left(e) => Left("Can't resolve type for " + expr.toString :: e)
+        case l@Left(e) => Left("Could not resolve type for " + expr.toString :: e)
       }
     }
   }
