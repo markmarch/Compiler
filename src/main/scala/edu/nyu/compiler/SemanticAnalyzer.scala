@@ -9,13 +9,10 @@ import collection.mutable.ListBuffer
  * Time: 2:16 PM
  */
 
-object SemanticAnalyzer extends ScopeAnalyzer{
+object SemanticAnalyzer{
 
   def analyze(program : Program) = {
-    val result = analyzeScope(program)
-    result.errors match {
-      case list : ListBuffer[String] if list.isEmpty => println(result.table)
-      case list => list.foreach(println)
-    }
+    new TypeAnalyzer().analyze(program)
+    println("\n---------------------------")
   }
 }
