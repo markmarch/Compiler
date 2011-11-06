@@ -42,7 +42,6 @@ class SymbolTable(val topLevel: Scope) {
   var scopes = List(topLevel)
   var currentScope = topLevel
 
-
   def pop(): Scope = {
     val head = scopes.head
     scopes = scopes.tail
@@ -50,15 +49,18 @@ class SymbolTable(val topLevel: Scope) {
     head
   }
 
-  def push(scope: Scope) = {
-    currentScope.children += scope
+  def push(scope : Scope) {
+    push(scope, true)
+  }
+
+  def push(scope: Scope, addToChildren : Boolean) {
+    if (addToChildren)
+      currentScope.children += scope
     currentScope = scope
     scopes = scope :: scopes
   }
 
-  override def toString = {
-    topLevel.getStringRep(0)
-  }
+  override def toString = topLevel.getStringRep(0)
 
   def lookup(name: String): Option[TackSymbol] = {
     @tailrec
@@ -68,5 +70,11 @@ class SymbolTable(val topLevel: Scope) {
       case x :: xs => lookupInScope(xs)
     }
     lookupInScope(scopes)
+  }
+  
+  def lookupFunDef(scope : Scope) : Option[FunDef] = scope.owner match {
+    case f : FunDef => Some(f)
+    case p : Program => None
+    case _ => lookupFunDef(scope.parent)
   }
 }
