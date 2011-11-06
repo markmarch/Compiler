@@ -6,8 +6,6 @@ f = fun (p : int, q : int) -> void {
     }
     { v = 0; }
     print(v : string);
-
-    v = 10;
 }
 
 main = fun () -> int {
