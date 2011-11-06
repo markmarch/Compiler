@@ -54,81 +54,170 @@ class TypeAnalyzer extends ScopeAnalyzer {
 
   import TypeAnalyzer.type2RichType
 
-  var symbolTable: SymbolTable = _
-  var errors : ListBuffer[String] = _
+  val int = PrimitiveType("int")
+  val string = PrimitiveType("string")
+  val bool = PrimitiveType("bool")
 
-  def error(msg : String) = {
+  var symbolTable: SymbolTable = _
+  var errors = new ListBuffer[String]
+
+  def error(msg: String) = {
     errors.append(msg)
   }
 
   def analyze(program: Program) = {
     val scopeAnalyzeResult = analyzeScope(program)
     scopeAnalyzeResult.errors match {
-      case list if list.isEmpty => symbolTable = scopeAnalyzeResult.table
+      case list if list.isEmpty => {
+        symbolTable = scopeAnalyzeResult.table
+        checkType(program)
+        if (!errors.isEmpty)
+          errors.foreach(println)
+      }
       case errors => errors.foreach(println)
     }
   }
 
-  def checkType(node: AstNode) = {
+  def checkType(node: AstNode): Unit = {
+    node match {
+      case p: Program => checkProgram(p)
+      case f: FunDef => checkFunDef(f)
+      case v: VarDef => checkVarDef(v)
+      case a: AssignStmt => checkAssignStmt(a)
+      case c: CallStmt => checkCallStmt(c)
+      case b: BlockStmt => checkBlockStmt(b)
+      case f: ForStmt => checkForStmt(f)
+      case i: IfStmt => checkIfStmt(i)
+      case r: ReturnStmt => checkReturnStmt(r)
+      case w: WhileStmt => checkWhileStmt(w)
+      case _ =>
+    }
+  }
 
+  def checkProgram(program: Program): Unit = {
+    program.funList.foreach(checkType)
+  }
+
+  def checkFunDef(funDef: FunDef): Unit = {
+    symbolTable.push(funDef.scope)
+    funDef.blockStmt.stmtList.foreach(checkType)
+    symbolTable.pop()
+  }
+
+  def checkBlockStmt(blockStmt: BlockStmt): Unit = {
+    symbolTable.push(blockStmt.scope)
+    blockStmt.stmtList.foreach(checkType)
+    symbolTable.pop()
   }
 
   def checkVarDef(varDef: VarDef) = {
     getType(varDef.expr) match {
-      case Right(t) => symbolTable.lookup(varDef.id.name).get.typ = t
-      case _ => errors.append("Can't resolve type for varialbe " + varDef.id.name)
-    }
-  }
-  
-  def checkAssignStmt(assignStmt : AssignStmt) = {
-    val (left, right) = (assignStmt.left, assignStmt.right)
-    if (isLeftValue(left)) {
-      (getType(left), getType(right)) match {
-        case (Right(l), Right(r)) => if (!(r isSubType l)) errors.append("Type mis-match")
-        case (l, r) => errors.appendAll(List(l.left, r.left))
-      }
-    } else {
-      errors.append("Left side of the assignemnt must ba an l-value")
+      case Right(t) => symbolTable.lookup(varDef.varId.name).get.typ = t
+      case Left(e) => ("Could not resolve type for varialbe '" + varDef.varId.name + "'" :: e).reverse.foreach(error)
     }
   }
 
-  def checkForStmt(forStmt : ForStmt) = {
+  def checkAssignStmt(assignStmt: AssignStmt) = {
+    val (left, right) = (assignStmt.left, assignStmt.right)
+    if (isLeftValue(left)) {
+      val name = getVariableName(left)
+      symbolTable.lookup(name) match {
+        case Some(s) if s.definition.isInstanceOf[VarDef] =>
+          (getType(left), getType(right)) match {
+            case (Right(l), Right(r)) => if (!(r isSubType l)) error("Cannot  assign " + l.toString + " from " + r.toString)
+            case (l@Left(e), _) => e.foreach(error)
+            case (_, l@Left(e)) => e.foreach(error)
+          }
+        case None => error("Unknow variable '" + name)
+        case _ => error("Variable name expected")
+      }
+    } else {
+      error("Variable name expected")
+    }
+  }
+
+  def getVariableName(node: AstNode): String = node match {
+    case v: VarId => v.name
+    case s: SubscriptExpr => getVariableName(s.left)
+    case f: FieldExpr => getVariableName(f.expr)
+    case _ => ""
+  }
+
+
+  def checkCallStmt(callStmt: CallStmt) = {
+    getType(callStmt.expr) match {
+      case Right(t) =>
+      case Left(e) => e.foreach(error)
+    }
+  }
+
+  def checkForStmt(forStmt: ForStmt): Unit = {
+    symbolTable.push(forStmt.scope)
     getType(forStmt.expr) match {
       case Right(ArrayType(t)) => symbolTable.lookup(forStmt.varId.name).get.typ = t
-      case l => error(l.left) error("Expression following for statement must have type of ArrayType")
+      case Right(t) => error("Subject of for-loop must be array ")
+      case l => error("Cant resolve type for variable " + forStmt.varId.name)
     }
+    symbolTable.pop()
   }
-  
-  def checkIfStmt(ifStmt : IfStmt) = {
+
+  def checkIfStmt(ifStmt: IfStmt) = {
     getType(ifStmt.expr) match {
       case Right(PrimitiveType("bool")) =>
-      case l => error(l.left); error("Expression in if statment must have type of bool")
+      case Right(t) => error("Boolean expected")
+      case Left(e) => e.foreach(error)
+    }
+    checkBlockStmt(ifStmt.blockStmt)
+    ifStmt.optBlockStmt match {
+      case Some(s) => checkBlockStmt(s)
+      case None =>
     }
   }
-  
-  def checkReturnStmt(returnStmt : ReturnStmt) = {
-//    val funDef = symbolTable.currentScope.owner.asInstanceOf[FunDef]
-//    val returnType = funDef.typ.toType
-//    val actualReturnType = returnStmt.optExpr match {
-//      case None => if (returnType != PrimitiveType("void"))
-//        error("Type mis-match, can't return value for a function with void return type")
-//      case Some(e) => val t = getType(e).isLeft
-//    }
-//    if (returnType == PrimitiveType("void"))
+
+  def checkReturnStmt(returnStmt: ReturnStmt) = {
+    val funType = symbolTable.currentScope.owner.asInstanceOf[FunDef].typ
+    val returnType = funType.returnType
+    returnStmt.optExpr match {
+      case None => {
+        if (returnType != PrimitiveType("void"))
+          error("Expected return value of type'" + returnType.toString + "', found 'void'")
+      }
+      case Some(e) => getType(e) match {
+        case Right(t) => {
+          if (!(t isSubType returnType))
+            error(typeMismatch(returnType, t))
+        }
+        case Left(e) => e.foreach(error)
+      }
+    }
+  }
+
+  def checkWhileStmt(whileStmt: WhileStmt) = {
+    getType(whileStmt.expr) match {
+      case Right(PrimitiveType("bool")) =>
+      case Right(t) => error("Boolean expected")
+      case Left(e) => e.foreach(error)
+    }
+    checkBlockStmt(whileStmt.blockStmt)
+  }
+
+  def typeMismatch(expected: Type, found: Type) = {
+    "Expected return type of \"" + expected.toString + "\", found " + found.toString
   }
 
   def isLeftValue(expr: Expression) = expr match {
-    case id: VarId => true
-    case s: SubscriptExpr => true
+    case v: VarId => true
     case f: FieldExpr => true
+    case s: SubscriptExpr => true
     case _ => false
   }
 
   // get type for an expression
-  def getType(expr: Expression): Either[String, Type] = expr match {
+  def getType(expr: Expression): Either[List[String], Type] = expr match {
     case id: VarId => symbolTable.lookup(id.name) match {
-      case None => Left("No type info for expr:" + expr.toString)
-      case Some(s) => Right(s.typ)
+      case None => Left(List("Unknown variable '" + id.name + "'"))
+      case Some(s) if s.typ != null => Right(s.typ)
+      case _ => Left(List("Can't resolve type"))
     }
     case bool: BoolLit => Right(PrimitiveType("bool"))
     case int: IntLit => Right(PrimitiveType("int"))
@@ -150,9 +239,14 @@ class TypeAnalyzer extends ScopeAnalyzer {
     getType(left) match {
       case Right(a: ArrayType) => getType(right) match {
         case Right(PrimitiveType("int")) => Right(a.typ)
-        case _ => Left("Subscript expresssion must be type of int")
+        case Left(e) => Left("Integer expected" :: e)
       }
-      case _ => Left("Base exprssion must be type of array")
+      case Right(t) => getType(right) match {
+        case Right(PrimitiveType("int")) => Left(List("Base of subscript must be array"))
+        case Right(t) => Left(List("Base of subscript must be array", "Integer expected"))
+        case l  => l
+      }
+      case l@Left(e) => l
     }
   }
 
@@ -160,104 +254,136 @@ class TypeAnalyzer extends ScopeAnalyzer {
     op match {
       case "-" => getType(expr) match {
         case Right(PrimitiveType("int")) => Right(PrimitiveType("int"))
-        case _ => Left("Type mis-match, requried int type")
+        case Right(t) => Left(List("Integer expected"))
+        case l@Left(e) => Left("Can't resolve type for " + expr.toString :: e)
       }
       case "!" => getType(expr) match {
         case Right(PrimitiveType("bool")) => Right(PrimitiveType("bool"))
-        case _ => Left("Type mis-match, requried int type")
+        case Right(t) => Left(List("Boolean expected"))
+        case l@Left(e) => Left("Can't resolve type for " + expr.toString :: e)
       }
     }
   }
 
-  def getInfixExprType(op: String, left: Expression, right: Expression): Either[String, Type] = {
+  def getInfixExprType(op: String, left: Expression, right: Expression) = {
     op match {
       case "||" | "&&" => (getType(left), getType(right)) match {
-        case (l: Left[_, _], _) => l
-        case (_, r: Left[_, _]) => r
         case (Right(PrimitiveType("bool")), Right(PrimitiveType("bool"))) => Right(PrimitiveType("bool"))
-        case _ => Left("Type mismatch, \"" + op + "\" can only operate with bool type")
+        case (l@Left(e), _) => l
+        case (_, r@Left(e)) => r
+        case _ => Left(List(("Boolean expected")))
+
       }
       case "==" | "!=" => (getType(left), getType(right)) match {
         case (Right(NullType()), _) | (_, Right(NullType())) => Right(PrimitiveType("bool"))
-        case (Right(l), Right(r)) => if ((l isSameType r) || (l isCastable r)) Right(PrimitiveType("bool")) else Left("Type mismatch")
-        case _ => Left("Type mismatch, \"" + op + "\" can only operate with bool type")
+        case (Right(l), Right(r)) => {
+          if ((l isSameType r) || (l isCastable r))
+            Right(PrimitiveType("bool"))
+          else Left(List("Can't compare '" + l.toString + "' to '" + r.toString + "'"))
+        }
+        case (l@Left(e), _) => l
+        case (_, r@Left(e)) => r
       }
       case "<=" | "<" | ">=" | ">" => (getType(left), getType(right)) match {
         case (Right(PrimitiveType("int")), Right(PrimitiveType("int"))) => Right(PrimitiveType("bool"))
-        case _ => Left("Type mismatch, \"" + op + "\" can only operate with int type")
+        case (l@Left(e), _) => l
+        case (_, r@Left(e)) => r
+        case _ => Left(List("Integer expected"))
       }
       case "+" => (getType(left), getType(right)) match {
         case (Right(PrimitiveType("string")), _) | (_, Right(PrimitiveType("string"))) => Right(PrimitiveType("string"))
         case (Right(PrimitiveType("int")), Right(PrimitiveType("int"))) => Right(PrimitiveType("int"))
-        case _ => Left("Type mismatch, \"" + op + "\" can only operate with int type and string type")
+        case (l@Left(e), _) => l
+        case (_, r@Left(e)) => r
+        case _ => Left(List("Integer expected"))
       }
       case "-" | "*" | "/" | "%" => (getType(left), getType(right)) match {
         case (Right(PrimitiveType("int")), Right(PrimitiveType("int"))) => Right(PrimitiveType("int"))
-        case _ => Left("Type mismatch, \"" + op + "\" can only operate with int type and string type")
+        case (l@Left(e), _) => l
+        case (_, r@Left(e)) => r
+        case _ => Left(List("Integer expected"))
       }
     }
   }
 
   def getFieldExprType(expr: Expression, fieldId: FieldId) = {
     getType(expr) match {
-      case r: RecordType => {
-        r.fieldTypeList.view.filter(_.fieldId == fieldId) match {
-          case l if l.isEmpty => Left("expression doesn't have filed \"" + fieldId.name + "\"")
-          case l => Right(l.head.typ)
-        }
+      case Right(r: RecordType) => r.fieldTypeList.view.filter(_.fieldId == fieldId) match {
+        case l if l.isEmpty => Left(List("Unknown filed '" + fieldId.name + "'"))
+        case l => Right(l.head.typ)
       }
+      case Right(t) => Left(List("Left side of expression must be record type, found " + t.toString))
+      case l => l
+
     }
   }
 
   def getCastExprType(expr: Expression, typ: Type) = {
     getType(expr) match {
-      case Right(t) => if (t isCastable typ) Right(typ) else Left("type cast error")
+      case Right(t) => {
+        if (t isCastable typ)
+          Right(typ)
+        else
+          Left(List("Can't cast from type " + t.toString + " to type " + typ.toString))
+      }
       case l => l
     }
   }
 
   def getCallExprType(callee: FunId, paramList: List[Expression]) = {
-    val funDef = symbolTable.lookup(callee.name)
-    funDef match {
-      case None => Left("Funciton " + callee.name + " is not defined")
-      case Some(s) => {
-        val (from, to) = s.typ.asInstanceOf[FunType] match {
+    val funDefSymbol = symbolTable.lookup(callee.name)
+    funDefSymbol match {
+      case None => Left(List("Unknown function '" + callee.name + "'"))
+      case Some(s) if s.definition == null || s.definition.isInstanceOf[FunDef] => {
+        val (from, to) = s.typ match {
           case FunType(f: RecordType, t: Type) => (f, t)
         }
         val paramTypeList = paramList.map(getType)
         val valid = !paramTypeList.exists(_.isLeft)
-        if (valid && from.fieldTypeList.map(_.typ) == paramTypeList.map(_.right)) {
-          Right(to)
+        if (valid && from.fieldTypeList.size == paramTypeList.size) {
+          // check if actual parameters' type conforms function formal parameters' type
+          val list = from.fieldTypeList.zip(paramTypeList.map(_.right.get))
+          val e = for ((expected, found) <- list if !found.isSameType(expected.typ) && !found.isSubType(expected.typ)) yield "Formal '" +
+            expected.fieldId.name + "' of function '" + callee.name + "' expectes '" + expected.typ.toString + "' found '" + found.toString + "' instead"
+
+          if (e.isEmpty)
+            Right(to)
+          else {
+            Left(e.reverse)
+          }
+        } else if (valid) {
+          Left(List("Wrong number of arguments for funciton '" + callee.name))
         } else {
-          Left("type mis-match for function \"" + callee.name + "\"")
+          Left(paramTypeList.filter(_.isLeft).map(_.left.get).flatten)
         }
       }
+      case Some(s) => Left(List("Function name exptected, found : " + callee.name))
     }
   }
 
-  def getArrayLitType(array: ArrayLit): Either[String, Type] = {
+  def getArrayLitType(array: ArrayLit) = {
     val types = array.exprList.map((e) => getType(e))
-    if (types.isEmpty || types.head.isLeft)
-      Left("Can't resolve type for varialbe " + array.toString)
+    if (types.isEmpty || types.exists(_.isLeft))
+      Left(List("Could not resolve array element type"))
     else {
       val t = types.head
       types.dropWhile(_ == t) match {
-        case Nil => t
-        case _ => Left("Different types in array " + array.toString)
+        case Nil => Right(ArrayType(t.right.get))
+        case _ => Left(List("Different types in array " + types.map(_.right.get.toString).mkString("[", ",", "]")))
       }
     }
   }
 
-  def getRecordLitType(record: RecordLit): Either[String, Type] = {
+  def getRecordLitType(record: RecordLit) = {
     @tailrec
-    def addToRecordType(fields: List[FieldLit], types: List[FieldType]): Either[String, RecordType] = {
+    def addToRecordType(fields: List[FieldLit], types: List[FieldType]): Either[List[String], RecordType] = {
       fields match {
         case Nil => Right(RecordType(types.reverse))
         case x :: xs => {
           val name = x.fieldId.name
           val typ = getType(x.expr)
           if (typ.isLeft)
-            Left("Can't resove type for filed " + name + " in " + x.toString)
+            Left(List("Could not resolve type for field '" + name + "'"))
           else
             addToRecordType(xs, FieldType(FieldId(name), typ.right.get) :: types)
         }
