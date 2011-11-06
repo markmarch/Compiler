@@ -50,8 +50,7 @@ trait ScopeAnalyzer {
     ("stringEqual", "bool", List(string("lhs"), string("rhs")))
   )
 
-  val intrinsicFunctionList = intrinsicFunctionDes.map(
-    (f: Tuple3[String, Type, List[Tuple2[String, Type]]]) => new TackSymbol(null, f._1, FunType(mkRecordType(f._3), f._2)))
+  val intrinsicFunctionList = intrinsicFunctionDes.map(f => new TackSymbol(null, f._1, FunType(mkRecordType(f._3), f._2)))
 
   def analyzeScope(program: Program): Result = {
     val table = createSymbolTable(program)
