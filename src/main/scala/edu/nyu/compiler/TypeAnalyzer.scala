@@ -64,19 +64,18 @@ class TypeAnalyzer extends ScopeAnalyzer {
     errors.append(msg)
   }
 
-  def analyze(program: Program) = {
+  def analyze(program: Program) : Either[String, String] = {
     val scopeAnalyzeResult = analyzeScope(program)
     scopeAnalyzeResult.errors match {
       case list if list.isEmpty => {
         symbolTable = scopeAnalyzeResult.table
         checkType(program)
         if (!errors.isEmpty) {
-          errors.mkString("\n") + "\nThere are " + errors.size + " errors."
-          System.exit(1)
+          Left(errors.mkString("\n") + "\nThere are " + errors.size + " errors.")
         }
-        else symbolTable.topLevel.getStringRep(0)
+        else Right(symbolTable.topLevel.getStringRep(0))
       }
-      case e => e.mkString("\n") + "\nThere are " + e.size + " errors." ; System.exit(1)
+      case e => Left(e.mkString("\n") + "\nThere are " + e.size + " errors.")
     }
   }
 

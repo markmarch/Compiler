@@ -10,7 +10,10 @@ import collection.mutable.ListBuffer
  */
 
 object SemanticAnalyzer{
-  def analyze(program : Program) {
-    println(new TypeAnalyzer().analyze(program))
+  def analyze(program : Program) = {
+    new TypeAnalyzer().analyze(program) match {
+      case Right(s) => println(s)
+      case Left(e) => println(e); System.exit(1)
+    }
   }
 }

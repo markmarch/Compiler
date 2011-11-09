@@ -13,7 +13,6 @@ import java.io.{FileFilter, FileNotFoundException, File}
 object Main extends TackParser {
 
   def main(args: Array[String]) {
-    val dir = "test/resources/pr3-test/"
     // val fileList = List("012", "013", "014", "015", "016").map(name => new File(dir + name + ".tack"))
     val fileList = new File("test/resources/pr3-test").listFiles(new FileFilter(){
       override def accept(f : File)  = {
@@ -24,7 +23,7 @@ object Main extends TackParser {
     if (args == null || args.length == 0)
       fileList.foreach(process)
     else 
-      process(new File(dir + args(0)))
+      process(new File(args(0)))
   }
 
   def process(file: File) {

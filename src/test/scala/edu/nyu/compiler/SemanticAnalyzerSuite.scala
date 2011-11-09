@@ -24,8 +24,8 @@ class SemanticAnalyzerSuite extends FunSuite {
       phrase(program)(new PackratReader(new lexical.Scanner(Source.fromFile(f).getLines.reduceLeft(_ + "\n" + _)))) match {
         case Success(program, _) => {
           val result =  new TypeAnalyzer().analyze(program)
-          if (result.startsWith("Program")) {
-            val got = result.split("\n").toList
+          if (result.isRight) {
+            val got = result.right.get.split("\n").toList
             val symsFile = new File(f.getAbsolutePath.replace("tack", "syms"))
             if (symsFile.exists) {
               val expected = Source.fromFile(symsFile).getLines.toList
