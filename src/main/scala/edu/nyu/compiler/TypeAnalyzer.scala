@@ -23,7 +23,7 @@ object TypeAnalyzer {
         true
       else if (typ.isInstanceOf[NullType] && t.isInstanceOf[RecordType])
         true
-      else if (typ.isInstanceOf[RecordType] && t.isInstanceOf[RecordType]){
+      else if (typ.isInstanceOf[RecordType] && t.isInstanceOf[RecordType]) {
         val listA = typ.asInstanceOf[RecordType].fieldTypeList
         val listB = t.asInstanceOf[RecordType].fieldTypeList
         if (listA.length < listB.length) false else isPrefix(listA, listB)
@@ -64,17 +64,19 @@ class TypeAnalyzer extends ScopeAnalyzer {
     errors.append(msg)
   }
 
-  def analyze(program: Program) {
+  def analyze(program: Program) = {
     val scopeAnalyzeResult = analyzeScope(program)
     scopeAnalyzeResult.errors match {
       case list if list.isEmpty => {
         symbolTable = scopeAnalyzeResult.table
         checkType(program)
-        if (!errors.isEmpty)
-          errors.foreach(println)
-        else println(symbolTable.topLevel.getStringRep(0))
+        if (!errors.isEmpty) {
+          errors.mkString("\n") + "\nThere are " + errors.size + " errors."
+          System.exit(1)
+        }
+        else symbolTable.topLevel.getStringRep(0)
       }
-      case e => e.foreach(println)
+      case e => e.mkString("\n") + "\nThere are " + e.size + " errors." ; System.exit(1)
     }
   }
 
