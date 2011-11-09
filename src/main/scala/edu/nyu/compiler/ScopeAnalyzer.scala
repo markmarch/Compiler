@@ -65,7 +65,7 @@ trait ScopeAnalyzer {
       case fun: FunDef => {
         table.topLevel.define(new TackSymbol(fun, fun.id.name, fun.typ))
         table.push(new Scope(fun, table.currentScope))
-        fun.typ.fromType.fieldTypeList.foreach(analyzeScope(_, result))
+        fun.typ.fromType.fieldTypeList.foreach(f => defineSymbol(result, new TackSymbol(f, f.fieldId.name, f.typ)))
         (fun.typ.fromType :: fun.blockStmt.stmtList).foreach(analyzeScope(_, result))
         table.pop()
       }
