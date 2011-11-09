@@ -1,0 +1,42 @@
+# sample program for quick sort
+sort = fun(a : [int], s : int, e : int) -> void {
+	if ( s >= e ) {
+		->;
+	} else {
+		start = s;
+		end = e;
+		pivotIndex = end;
+		pivot = a[end];
+		end := end -1;
+		while(start < end) {
+			while(a[start] < pivot) {
+				start := start + 1;
+			}
+			while(a[end] > pivot) {
+				end := end - 1;
+			}
+			if (start < end) {
+				temp = a[start];
+				a[start] := a[end];
+				a[end] := temp;
+				start := start + 1;
+				end := end -1;
+			}
+		}
+		temp = a[pivotIndex];
+		a[pivotIndex] := a[end];
+		a[end] := temp;
+		sort(a, s, start - 1);
+		sort(a, end + 1, e);
+	}
+	->;
+}
+
+main = fun() -> void {
+	a = [3, 5, 12, 22, 1, 0, 8, 10];
+	sort(a, 0, size(a));
+	for i in a {
+		print(int2string(i));
+	}
+	->;
+}
