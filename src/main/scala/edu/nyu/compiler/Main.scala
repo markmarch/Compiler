@@ -29,7 +29,6 @@ object Main extends TackParser {
 
   def process(file: File) {
     try {
-      println(file.getName)
       val s = Source.fromFile(file).getLines().reduceLeft(_ + "\n" + _)
       val tokens = new PackratReader(new lexical.Scanner(s))
       val result = phrase(program)(tokens)
