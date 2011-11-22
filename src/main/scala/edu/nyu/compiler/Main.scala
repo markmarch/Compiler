@@ -10,7 +10,7 @@ import java.io.{FileFilter, FileNotFoundException, File}
  * Time: 3:25 PM
  */
 
-object Main extends TackParser {
+object Main extends TackParser with SemanticAnalyzer{
 
   def main(args: Array[String]) {
     // val fileList = List("012", "013", "014", "015", "016").map(name => new File(dir + name + ".tack"))
@@ -59,7 +59,7 @@ object Main extends TackParser {
   def semanticAnalyze(result: ParseResult[Program]) {
     result match {
       case Success(program, _) => {
-        SemanticAnalyzer.analyze(program)
+        analyze(program)
       }
       case e: NoSuccess => println("Syntax error: " + e.msg)
     }

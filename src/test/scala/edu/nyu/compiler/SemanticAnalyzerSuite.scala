@@ -13,7 +13,7 @@ import scala.io.Source
 class SemanticAnalyzerSuite extends FunSuite {
   object Parser extends TackParser
 
-  test("analyze all given sample test cases") {
+  test("analyzeType all given sample test cases") {
     val fileList = new File("test/resources/pr3-test").listFiles(new FileFilter() {
       override def accept(file : File) = file.getName.endsWith(".tack")
     })
@@ -23,7 +23,7 @@ class SemanticAnalyzerSuite extends FunSuite {
       import Parser._
       phrase(program)(new PackratReader(new lexical.Scanner(Source.fromFile(f).getLines.reduceLeft(_ + "\n" + _)))) match {
         case Success(program, _) => {
-          val result =  new TypeAnalyzer().analyze(program)
+          val result =  new TypeAnalyzer().analyzeType(program)
           if (result.isRight) {
             val got = result.right.get.split("\n").toList
             val symsFile = new File(f.getAbsolutePath.replace("tack", "syms"))

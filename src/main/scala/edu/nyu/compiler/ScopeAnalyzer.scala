@@ -16,8 +16,6 @@ object ScopeAnalyzer {
 }
 
 trait ScopeAnalyzer {
-
-
   implicit def string2Type(str: String) = PrimitiveType(str)
 
   def mkRecordType(list: List[(String, Type)]) = {

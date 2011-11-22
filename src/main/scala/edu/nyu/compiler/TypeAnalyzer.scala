@@ -49,7 +49,7 @@ object TypeAnalyzer {
 
 }
 
-class TypeAnalyzer extends ScopeAnalyzer {
+trait TypeAnalyzer extends ScopeAnalyzer {
 
   import TypeAnalyzer.type2RichType
 
@@ -64,7 +64,7 @@ class TypeAnalyzer extends ScopeAnalyzer {
     errors.append(msg)
   }
 
-  def analyze(program: Program) : Either[String, String] = {
+  def analyzeType(program: Program) : Either[String, String] = {
     val scopeAnalyzeResult = analyzeScope(program)
     scopeAnalyzeResult.errors match {
       case list if list.isEmpty => {
