@@ -10,7 +10,7 @@ import java.io.{FileFilter, FileNotFoundException, File}
  * Time: 3:25 PM
  */
 
-object Main extends TackParser with SemanticAnalyzer{
+object Main extends TackParser with SemanticAnalyzer with IRGenerator{
 
   def main(args: Array[String]) {
     // val fileList = List("012", "013", "014", "015", "016").map(name => new File(dir + name + ".tack"))
@@ -23,7 +23,7 @@ object Main extends TackParser with SemanticAnalyzer{
     if (args == null || args.length == 0)
       fileList.foreach(process)
     else 
-      process(new File(args(0)))
+      process(new File("test/resources/pr3-test/" + args(0)))
   }
 
   def process(file: File) {
@@ -31,11 +31,12 @@ object Main extends TackParser with SemanticAnalyzer{
       val s = Source.fromFile(file).getLines().reduceLeft(_ + "\n" + _)
       val tokens = new PackratReader(new lexical.Scanner(s))
       val result = phrase(program)(tokens)
-      val mileStone = 3
+      val mileStone = 4
       mileStone match {
         case 1 => checkSyntax(result)
         case 2 => printAst(result)
         case 3 => semanticAnalyze(result)
+        case 4 => generateIR(result)
       }
     } catch {
       case e: FileNotFoundException => println(e.getMessage)
@@ -62,6 +63,14 @@ object Main extends TackParser with SemanticAnalyzer{
         analyze(program)
       }
       case e: NoSuccess => println("Syntax error: " + e.msg)
+    }
+  }
+
+  def generateIR(result : ParseResult[Program]) {
+    result match {
+      case Success(program, _) =>{
+        generateIR(program).foreach(println)
+      }
     }
   }
 }
