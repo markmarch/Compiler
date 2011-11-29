@@ -1,5 +1,7 @@
 package edu.nyu.compiler
 
+import collection.mutable.ListBuffer
+
 sealed abstract class AstNode {
   var scope: Scope = _
   val indent = "  " // two space indentation
@@ -11,11 +13,18 @@ sealed abstract class AstNode {
   }
 }
 
-sealed abstract class Expression extends AstNode
+sealed abstract class Expression extends AstNode {
+  var t : String = _
+  var f : String = _
+  var address : String = _
+  var code : List[String] = List.empty[String]
+}
 
 sealed abstract class Type extends AstNode
 
-sealed abstract class Stmt extends AstNode
+sealed abstract class Stmt extends AstNode {
+  var code : List[String] = List.empty[String]
+}
 
 trait HasValue[T] {
   def value : T
@@ -40,14 +49,17 @@ case class IntLit(value : Int) extends Expression with HasValue[Int]{
 case class NullLit() extends Expression
 
 case class ArrayLit(exprList : List[Expression]) extends Expression {
+  var typ : ArrayType = _
   override def children = exprList
 }
 
 case class RecordLit(fieldLitList : List[FieldLit]) extends Expression {
+  var typ : RecordType = _
   override def children = fieldLitList
 }
 
 case class FieldLit(fieldId : FieldId, expr : Expression) extends Expression {
+  var typ : FieldType = _
   override def children = List(fieldId, expr)
 }
 
@@ -111,10 +123,10 @@ case class FunType(fromType : RecordType, returnType : Type) extends Type  {
   override def children = List(fromType, returnType)
 }
 
-case class ArrayType(typ : Type) extends Type {
-  override def children = List(typ)
+case class ArrayType(elementType : Type) extends Type {
+  override def children = List(elementType)
   
-  override def toString = "[" + typ.toString + "]"
+  override def toString = "[" + elementType.toString + "]"
 }
 
 case class FieldType(fieldId : FieldId, typ : Type)  extends Type {
@@ -145,11 +157,13 @@ case class BlockStmt(stmtList : List[Stmt]) extends Stmt {
   override def children = stmtList
 }
 
-case class CallStmt(expr : Expression) extends Stmt  {
+case class CallStmt(expr : CallExpr) extends Stmt  {
   override def children = List(expr)
 }
 
 case class ForStmt(varId : VarId,  expr : Expression, blockStmt : BlockStmt) extends Stmt {
+  var t : String = _
+  var f : String = _
   override def children = List(varId, expr, blockStmt)
 }
 
@@ -162,5 +176,7 @@ case class ReturnStmt(optExpr : Option[Expression]) extends Stmt {
 }
 
 case class WhileStmt(expr : Expression, blockStmt : BlockStmt) extends Stmt {
+  var before : String = _
+  var after : String = _
   override def children = List(expr, blockStmt)
 }
