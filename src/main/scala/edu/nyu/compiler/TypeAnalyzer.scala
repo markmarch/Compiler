@@ -242,7 +242,7 @@ trait TypeAnalyzer extends ScopeAnalyzer {
   def getSubscriptExprType(left: Expression, right: Expression) = {
     getType(left) match {
       case Right(a: ArrayType) => getType(right) match {
-        case Right(PrimitiveType("int")) => Right(a.typ)
+        case Right(PrimitiveType("int")) => Right(a.elementType)
         case Right(t) => Left(List("Integer expected"))
         case l => l
       }
@@ -379,7 +379,9 @@ trait TypeAnalyzer extends ScopeAnalyzer {
     else {
       val t = types.head
       types.dropWhile(_ == t) match {
-        case Nil => Right(ArrayType(t.right.get))
+        case Nil => 
+          array.typ = ArrayType(t.right.get)
+          Right(array.typ)
         case _ => Left(List("Different types in array " + types.map(_.right.get.toString).mkString("[", ",", "]")))
       }
     }
@@ -389,7 +391,9 @@ trait TypeAnalyzer extends ScopeAnalyzer {
     @tailrec
     def addToRecordType(fields: List[FieldLit], types: List[FieldType]): Either[List[String], RecordType] = {
       fields match {
-        case Nil => Right(RecordType(types.reverse))
+        case Nil =>
+          record.typ = RecordType(types.reverse)
+          Right(record.typ)
         case x :: xs => {
           val name = x.fieldId.name
           val typ = getType(x.expr)
