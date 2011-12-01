@@ -1,4 +1,12 @@
 # sample program for quick sort
+printArray = fun(a : [int]) -> void {
+  for i in a {
+    print(i + " ");
+  }
+  print("\n");
+  ->;
+}
+
 sort = fun(a : [int], s : int, e : int) -> void {
 	if ( s >= e ) {
 		->;
@@ -9,10 +17,10 @@ sort = fun(a : [int], s : int, e : int) -> void {
 		pivot = a[end];
 		end := end -1;
 		while(start < end) {
-			while(a[start] < pivot) {
+			while(a[start] < pivot && start <= end) {
 				start := start + 1;
 			}
-			while(a[end] > pivot) {
+			while(a[end] > pivot && end >= start) {
 				end := end - 1;
 			}
 			if (start < end) {
@@ -24,19 +32,20 @@ sort = fun(a : [int], s : int, e : int) -> void {
 			}
 		}
 		temp = a[pivotIndex];
-		a[pivotIndex] := a[end];
-		a[end] := temp;
-		sort(a, s, start - 1);
+		a[pivotIndex] := a[end + 1];
+		a[end + 1] := temp;
+		#printArray(a);
+		sort(a, s, end);
 		sort(a, end + 1, e);
 	}
 	->;
 }
 
 main = fun() -> void {
-	a = [3, 5, 12, 22, 1, 0, 8, 10];
-	sort(a, 0, size(a));
+	a = [3, 5, 12, 22, 1, 0, 8, 10, -1, 220, 30, 10, 2];
+	sort(a, 0, size(a) - 1);
 	for i in a {
-		print(int2string(i));
+		print(int2string(i) + "\n");
 	}
 	->;
 }
