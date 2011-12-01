@@ -1,0 +1,10 @@
+main = fun() -> int {
+    while true {
+        print("h\n");
+        if true {
+            print("i\n");
+        -> 0;
+        }
+    }
+    -> 0;
+}

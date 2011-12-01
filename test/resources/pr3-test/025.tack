@@ -1,0 +1,22 @@
+# add string literal and other primitive types
+swap = fun(a : [int], i : int, j : int) -> void {
+  temp = a[i];
+  a[i] := a[j];
+  a[j] := temp;
+  ->;
+}
+main = fun () -> int {
+  e = [1, -2];
+  e[0] := -2;
+  swap(e, 0, 1);
+  for i in e{
+    print(int2string(i) + "\n");
+  }
+
+  i = 0;
+  while(i < 10) {
+    print(i + "\n");
+    i := i + 1;
+  }
+  -> 0;
+}
