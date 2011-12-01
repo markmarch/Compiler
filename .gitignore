@@ -10,3 +10,5 @@ project/plugins/target/
 project/plugins/lib_managed/
 *.ir
 IR*.jar
+
+test/resources/pr3-test/run.sh
