@@ -17,6 +17,7 @@ sealed abstract class Expression extends AstNode {
   var t : String = _
   var f : String = _
   var address : String = _
+  var typ : Type = _
   var code : List[String] = List.empty[String]
 }
 
@@ -49,17 +50,14 @@ case class IntLit(value : Int) extends Expression with HasValue[Int]{
 case class NullLit() extends Expression
 
 case class ArrayLit(exprList : List[Expression]) extends Expression {
-  var typ : ArrayType = _
   override def children = exprList
 }
 
 case class RecordLit(fieldLitList : List[FieldLit]) extends Expression {
-  var typ : RecordType = _
   override def children = fieldLitList
 }
 
 case class FieldLit(fieldId : FieldId, expr : Expression) extends Expression {
-  var typ : FieldType = _
   override def children = List(fieldId, expr)
 }
 
@@ -75,7 +73,9 @@ case class FieldId(name : String) extends AstNode with HasName {
   override def label = "FieldId " + name
 }
 
-case class InfixExpr(op : String, left : Expression, right : Expression) extends Expression {
+// here we make left and right mutable because we need right rewrite infix expression
+// when there is a implicit cast
+case class InfixExpr(op : String, var left : Expression, var right : Expression) extends Expression {
   override def label = "InfixExpr " + op
   override def children = List(left, right)
 }
@@ -89,8 +89,8 @@ case class CallExpr(callee : FunId, paramList : List[Expression]) extends Expres
   override def children = callee :: paramList
 }
 
-case class CastExpr(expr : Expression, typ : Type) extends Expression  {
-  override def children = List(expr, typ)
+case class CastExpr(expr : Expression, toType : Type) extends Expression  {
+  override def children = List(expr, toType)
 }
 
 case class FieldExpr(expr : Expression, fieldId : FieldId) extends Expression {
