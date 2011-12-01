@@ -22,7 +22,11 @@ trait TackParser extends StandardTokenParsers with PackratParsers with ImplicitC
   def program : Parser[Program] = (funDef +) ^^ { (funList : List[FunDef]) => Program(funList)}
 
   def funDef : Parser[FunDef] = ident ~ "=" ~ "fun" ~ funType ~ blockStmt  ^^ {
-    case id ~ "=" ~ "fun" ~ typ ~ bs => FunDef(FunId(id), typ, bs)
+    case id ~ "=" ~ "fun" ~ typ ~ bs => 
+      bs.stmtList.last match {
+        case _ : ReturnStmt => FunDef(FunId(id), typ, bs)
+        case _ => FunDef(FunId(id), typ, BlockStmt(bs.stmtList ::: List(ReturnStmt(None))))
+      }
   }
 
   def typ: Parser[Type] = arrayType | recordType| "bool" ^^^ {PrimitiveType("bool")} |
