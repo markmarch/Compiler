@@ -15,6 +15,11 @@ trait IRGenerator extends TypeAnalyzer {
   private val relationOp = Set("==", "!=", ">=", ">", "<=", "<")
   private val arithmeticOp = Set("+", "-", "*", "/", "%")
 
+  def reset() {
+    nextLabelIndex = 0
+    nextTempIndex = 0
+  }
+
   def mkLabel() = {
     nextLabelIndex += 1
     "L" + nextLabelIndex
@@ -28,11 +33,9 @@ trait IRGenerator extends TypeAnalyzer {
   def generateIR(p: Program): List[String] = {
     analyzeType(p) match {
       case Left(e) => println(e); Nil
-      case Right(_) => gen(p)
+      case Right(_) => p.funList.flatMap(genFunDef)
     }
   }
-
-  def gen(p: Program): List[String] = p.funList.flatMap(genFunDef)
 
   def genFunDef(f: FunDef) = {
     genStmt(f.blockStmt)
@@ -51,7 +54,7 @@ trait IRGenerator extends TypeAnalyzer {
   }
 
   def genCallStmt(c: CallStmt) {
-    genCallExpr(c.expr)
+    genCallExpr(c.expr, true)
     c.code = c.expr.code ::: List(c.expr.address)
   }
 
@@ -93,36 +96,54 @@ trait IRGenerator extends TypeAnalyzer {
     w.expr.t = mkLabel()
     w.expr.f = w.after
     genJumpingCode(w.expr)
-    genStmt(w.blockStmt)
     val code = new ListBuffer[String]
     code.append(w.before + ":")
     code.appendAll(w.expr.code)
-    code.append(w.expr.t)
+    code.append(w.expr.t + ":")
+    genStmt(w.blockStmt)
     code.appendAll(w.blockStmt.code)
-    code.append("goto " + w.before)
+    code.append("goto " + w.before + ";")
     code.append(w.after + ":")
+    w.code = code.toList
   }
 
   def genVarDef(v: VarDef) {
     genAssignment(v, v.varId, v.expr)
   }
 
-  def genAssignment(s: Stmt, from: Expression, to: Expression) {
-    genValueCode(from)
-
-    to match {
-      case InfixExpr(op, left, right) if arithmeticOp.contains(op) =>
-        genValueCode(left)
-        genValueCode(right)
-        s.code = from.code ::: left.code :::
-          right.code ::: List(from.address + " = " + left.address + " " + op + " " + right.address + ";")
+  def genAssignment(s: Stmt, left: Expression, right: Expression) {
+    left match {
+      case s: SubscriptExpr => genSubscriptExpr(s, true)
+      case _ => genValueCode(left)
+    }
+    
+    right match {
+      case t@InfixExpr("+", _, _) if right.typ == PrimitiveType("string") =>
+        genStringAddExpr(t)
+        s.code = left.code ::: t.code :::
+          List(left.address + " = " + t.address + ";")
+      case InfixExpr(op, l, r) if arithmeticOp.contains(op) =>
+        genValueCode(l)
+        genValueCode(r)
+        s.code = left.code ::: l.code :::
+          r.code ::: List(left.address + " = " + l.address + " " + op + " " + r.address + ";")
       case PrefixExpr(op, e) =>
         genValueCode(e)
-        s.code = from.code ::: e.code :::
-          List(from.address + " = " + op + e.address)
+        s.code = left.code ::: e.code
+        left match {
+          case sub : SubscriptExpr => 
+            right.address = mkTemp()
+            s.code = s.code :::
+              List(right.address + " = " + op + e.address + ";", left.address + " = " + right.address + ";")
+          case _ => s.code = s.code ::: List(left.address + " = " + op + e.address + ";") 
+        }
+      case c : CastExpr =>
+        genValueCode(c)
+        s.code = left.code ::: c.code :::
+          List(left.address + " = " + c.address + ";")
       case _ =>
-        genValueCode(to)
-        s.code = from.code ::: to.code ::: List(from.address + " = " + to.address)
+        genValueCode(right)
+        s.code = left.code ::: right.code ::: List(left.address + " = " + right.address + ";")
     }
   }
 
@@ -141,17 +162,18 @@ trait IRGenerator extends TypeAnalyzer {
     code.append(index + " = 0;")
     val begin = mkLabel()
     val after = mkLabel()
-    code.append(begin)
+    code.append(begin + ":")
     code.append("if " + index + " >= " + size + " goto " + after + ";")
     code.append(f.varId.name + " = " + f.expr.address + "[" + index + "]" + ";")
     f.blockStmt.stmtList.foreach(genStmt)
     code.appendAll(f.blockStmt.stmtList.flatMap(_.code))
+    code.append(index + " = " + index + " + 1;")
     code.append("goto " + begin + ";")
     code.append(after + ":")
     f.code = code.toList
   }
 
-  def genJumpingCode(expr: Expression): Unit = {
+  def genJumpingCode(expr: Expression) {
     expr match {
       case InfixExpr("||", left, right) =>
         left.t = expr.t
@@ -180,10 +202,19 @@ trait IRGenerator extends TypeAnalyzer {
         e.f = expr.t
         genJumpingCode(e)
         expr.code = e.code
+      case ParenExpr(e) =>
+        e.t = expr.t
+        e.f = expr.f
+        genJumpingCode(e)
+        expr.code = e.code
       case BoolLit(true) =>
         expr.code = List("goto " + expr.t + ";")
       case BoolLit(false) =>
         expr.code = List("goto " + expr.f + ";")
+      case _ =>
+        genValueCode(expr)
+        expr.code = expr.code ::: List("if " + expr.address + " goto " + expr.t + ";",
+        "goto " + expr.f + ";")
     }
   }
 
@@ -211,24 +242,27 @@ trait IRGenerator extends TypeAnalyzer {
     p.code = p.expr.code
   }
 
-  def genSubscriptExpr(subExpr: SubscriptExpr) {
+  def genSubscriptExpr(subExpr: SubscriptExpr, returnRef : Boolean = false) {
     genValueCode(subExpr.left)
     genValueCode(subExpr.right)
-    subExpr.address = subExpr.left.address + "[" + subExpr.right.address + "]"
     subExpr.code = subExpr.left.code ::: subExpr.right.code
+    if (returnRef) {
+      subExpr.address =  subExpr.left.address + "[" + subExpr.right.address + "]"
+    } else {
+      subExpr.address = mkTemp()
+      subExpr.code = subExpr.code ::: List(subExpr.address + " = " + subExpr.left.address + "[" + subExpr.right.address + "];")
+    }
   }
 
   def genArrayLit(a: ArrayLit) = {
-    val typ = a.typ
+    val typ = a.typ.asInstanceOf[ArrayType]
     val code = new ListBuffer[String]
     a.exprList.foreach(genValueCode)
 
     code.appendAll(a.exprList.flatMap(_.code))
 
     val temp = mkTemp()
-    val eleSize = mkTemp()
-    code.append(eleSize + " = sizeof(" + typ.elementType.toString + ");")
-    code.append("param [0 : 2] = " + eleSize + ";")
+    code.append("param [0 : 2] = sizeof(" + typ.elementType.toString + ");")
     code.append("param [1 : 2] = " + a.exprList.size + ";")
     code.append(temp + " = call newArray : 2" + ";")
 
@@ -242,13 +276,13 @@ trait IRGenerator extends TypeAnalyzer {
   }
 
   def genRecordLit(r: RecordLit) {
-    val typ = r.typ
+    val typ = r.typ.asInstanceOf[RecordType]
     val fieldLitList = r.fieldLitList
     val temp = mkTemp()
     val code = new ListBuffer[String]
     fieldLitList.foreach(genValueCode)
     code.appendAll(fieldLitList.flatMap(_.code))
-    code.append("param[0 : 1] =" + typ.toString + ";")
+    code.append("param[0 : 1] = sizeof(" + typ.toString + ");")
     code.append(temp + " = call newRecord : 1;")
     val assignCode =
       for ((field, value) <- typ.fieldTypeList.map(_.fieldId.name).zip(fieldLitList.map(_.address)))
@@ -266,12 +300,13 @@ trait IRGenerator extends TypeAnalyzer {
 
   def genPrefixExpr(prefixExpr: PrefixExpr) {
     genValueCode(prefixExpr.expr)
-    prefixExpr.address = prefixExpr.op + prefixExpr.expr.address
-    prefixExpr.code = prefixExpr.expr.code
+    prefixExpr.address = mkTemp()
+    prefixExpr.code = prefixExpr.expr.code ::: List(prefixExpr.address + " = " + prefixExpr.op + prefixExpr.expr.address + ";")
   }
 
   def genInfixExpr(i: InfixExpr) {
     i.op match {
+      case op if op == "+" && i.typ == PrimitiveType("string") => genStringAddExpr(i)
       case op if arithmeticOp.contains(op) =>
         genValueCode(i.left)
         genValueCode(i.right)
@@ -294,7 +329,22 @@ trait IRGenerator extends TypeAnalyzer {
     }
   }
 
-  def genCallExpr(expr: CallExpr) {
+  def genStringAddExpr(i : InfixExpr) {
+    val (left, right) = (i.left, i.right)
+    genValueCode(left)
+    genValueCode(right)
+    
+    val code = new ListBuffer[String]
+    code.appendAll(left.code)
+    code.appendAll(right.code)
+    code.append("param[0 : 2] = " + left.address + ";")
+    code.append("param[1 : 2] = " + right.address + ";")
+    i.address = mkTemp()
+    code.append(i.address + " = call append : 2;")
+    i.code = code.toList
+  }
+
+  def genCallExpr(expr: CallExpr, withReturnValue : Boolean = false) {
     val callee = expr.callee
     val params = expr.paramList
     val arity = params.size
@@ -303,20 +353,26 @@ trait IRGenerator extends TypeAnalyzer {
     val prepareParamCode =
       for ((a, i) <- params.map(_.address).zipWithIndex)
       yield "param[" + i + " : " + arity + "] = " + a + ";"
-    expr.address = "call " + callee.name + " : " + arity + ";"
-    expr.code = params.flatMap(_.code) ::: prepareParamCode;
+    expr.code = params.flatMap(_.code) ::: prepareParamCode
+    if(!withReturnValue) {
+      expr.address = mkTemp()
+      expr.code = expr.code ::: List(expr.address + " = call " + callee.name + " : " + arity + ";")
+    } else {
+      expr.address = "call " + callee.name + " : " + arity + ";"
+    }
   }
 
   def genCastExpr(castExpr: CastExpr) {
     genValueCode(castExpr.expr)
-    castExpr.code = castExpr.code
-    castExpr.address = castExpr.expr.address + " : " + castExpr.typ.toString
+    castExpr.address = mkTemp()
+    castExpr.code = castExpr.expr.code :::
+      List(castExpr.address + " = " + castExpr.expr.address + " : " + castExpr.toType.toString + ";")
   }
 
 
   def genFieldExpr(fieldExpr: FieldExpr) = {
     genValueCode(fieldExpr.expr)
-    fieldExpr.address = fieldExpr.expr.address + "." + fieldExpr.fieldId.name
-    fieldExpr.code = fieldExpr.expr.code
+    fieldExpr.address = mkTemp()
+    fieldExpr.code = fieldExpr.expr.code ::: List(fieldExpr.address + " = " + fieldExpr.expr.address + "." + fieldExpr.fieldId.name + ";")
   }
 }
