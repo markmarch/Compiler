@@ -10,7 +10,7 @@ import collection.mutable.ListBuffer
  * Time: 5:20 PM
  */
 object TypeAnalyzer {
-  // implicit conversion from Type to RichType
+  // implicit conversion left Type right RichType
   implicit def type2RichType(t: Type) = new RichType(t)
 
   // A wrapper that wraps a Type
@@ -64,7 +64,7 @@ trait TypeAnalyzer extends ScopeAnalyzer {
     errors.append(msg)
   }
 
-  def analyzeType(program: Program) : Either[String, String] = {
+  def analyzeType(program: Program): Either[String, String] = {
     val scopeAnalyzeResult = analyzeScope(program)
     scopeAnalyzeResult.errors match {
       case list if list.isEmpty => {
@@ -126,7 +126,7 @@ trait TypeAnalyzer extends ScopeAnalyzer {
         case Some(s) if s.definition == null || s.definition.isInstanceOf[FunDef] => error("Variable name expected, found : '" + name + "'")
         case Some(s) =>
           (getType(left), getType(right)) match {
-            case (Right(l), Right(r)) => if (!(r isSubType l)) error("Cannot  assign " + l.toString + " from " + r.toString)
+            case (Right(l), Right(r)) => if (!(r isSubType l)) error("Cannot  assign " + l.toString + " left " + r.toString)
             case (l@Left(e), _) => e.foreach(error)
             case (_, l@Left(e)) => e.foreach(error)
           }
@@ -159,6 +159,7 @@ trait TypeAnalyzer extends ScopeAnalyzer {
       case Right(t) => error("Subject of for-loop must be array")
       case l => error("Could not resolve type for variable '" + forStmt.varId.name + "'")
     }
+    forStmt.blockStmt.stmtList.foreach(checkType)
     symbolTable.pop()
   }
 
@@ -217,26 +218,33 @@ trait TypeAnalyzer extends ScopeAnalyzer {
   }
 
   // get type for an expression
-  def getType(expression: Expression): Either[List[String], Type] = expression match {
-    case id: VarId => symbolTable.lookup(id.name) match {
-      case None => Left(List("Unknown variable '" + id.name + "'"))
-      case Some(s) if s.typ != null => Right(s.typ)
-      case _ => Left(List("Could not resolve type"))
+  def getType(expression: Expression): Either[List[String], Type] = {
+    val t = expression match {
+      case id: VarId => symbolTable.lookup(id.name) match {
+        case None => Left(List("Unknown variable '" + id.name + "'"))
+        case Some(s) if s.typ != null => Right(s.typ)
+        case _ => Left(List("Could not resolve type"))
+      }
+      case bool: BoolLit => Right(PrimitiveType("bool"))
+      case int: IntLit => Right(PrimitiveType("int"))
+      case string: StringLit => Right(PrimitiveType("string"))
+      case n: NullType => Right(NullType())
+      case nullLit: NullLit => Right(NullType())
+      case array: ArrayLit => getArrayLitType(array)
+      case record: RecordLit => getRecordLitType(record)
+      case CallExpr(callee, paramList) => getCallExprType(callee, paramList)
+      case CastExpr(expr, typ) => getCastExprType(expr, typ)
+      case FieldExpr(expr, fieldId) => getFieldExprType(expr, fieldId)
+      case i: InfixExpr => getInfixExprType(i)
+      case ParenExpr(expr) => getType(expr)
+      case PrefixExpr(op, expr) => getPrefixExprType(op, expr)
+      case SubscriptExpr(left, right) => getSubscriptExprType(left, right)
     }
-    case bool: BoolLit => Right(PrimitiveType("bool"))
-    case int: IntLit => Right(PrimitiveType("int"))
-    case string: StringLit => Right(PrimitiveType("string"))
-    case n: NullType => Right(NullType())
-    case nullLit: NullLit => Right(NullType())
-    case array: ArrayLit => getArrayLitType(array)
-    case record: RecordLit => getRecordLitType(record)
-    case CallExpr(callee, paramList) => getCallExprType(callee, paramList)
-    case CastExpr(expr, typ) => getCastExprType(expr, typ)
-    case FieldExpr(expr, fieldId) => getFieldExprType(expr, fieldId)
-    case InfixExpr(op, left, right) => getInfixExprType(op, left, right)
-    case ParenExpr(expr) => getType(expr)
-    case PrefixExpr(op, expr) => getPrefixExprType(op, expr)
-    case SubscriptExpr(left, right) => getSubscriptExprType(left, right)
+    t match {
+      case Right(typ) => expression.typ = typ
+      case _ =>
+    }
+    t
   }
 
   def getSubscriptExprType(left: Expression, right: Expression) = {
@@ -270,7 +278,8 @@ trait TypeAnalyzer extends ScopeAnalyzer {
     }
   }
 
-  def getInfixExprType(op: String, left: Expression, right: Expression) = {
+  def getInfixExprType(i: InfixExpr) = {
+    val (op, left, right) = (i.op, i.left, i.right)
     op match {
       case "||" | "&&" => (getType(left), getType(right)) match {
         case (Right(PrimitiveType("bool")), Right(PrimitiveType("bool"))) => Right(PrimitiveType("bool"))
@@ -284,7 +293,7 @@ trait TypeAnalyzer extends ScopeAnalyzer {
         case (Right(l), Right(r)) => {
           if ((l isSameType r) || (l canCastTo r))
             Right(PrimitiveType("bool"))
-          else Left(List("Can't compare '" + l.toString + "' to '" + r.toString + "'"))
+          else Left(List("Can't compare '" + l.toString + "' right '" + r.toString + "'"))
         }
         case (l@Left(e), _) => l
         case (_, r@Left(e)) => r
@@ -296,7 +305,13 @@ trait TypeAnalyzer extends ScopeAnalyzer {
         case _ => Left(List("Integer expected"))
       }
       case "+" => (getType(left), getType(right)) match {
-        case (Right(PrimitiveType("string")), _) | (_, Right(PrimitiveType("string"))) => Right(PrimitiveType("string"))
+        case (Right(PrimitiveType("string")), Right(PrimitiveType("string"))) => Right(PrimitiveType("string"))
+        case (Right(PrimitiveType("string")), Right(PrimitiveType(t))) =>
+          i.right = convertToString(right, t)
+          Right(PrimitiveType("string"))
+        case (Right(PrimitiveType(t)), Right(PrimitiveType("string"))) =>
+          i.left = convertToString(left, t)
+          Right(PrimitiveType("string"))
         case (Right(PrimitiveType("int")), Right(PrimitiveType("int"))) => Right(PrimitiveType("int"))
         case (l@Left(e), _) => l
         case (_, r@Left(e)) => r
@@ -309,6 +324,13 @@ trait TypeAnalyzer extends ScopeAnalyzer {
         case _ => Left(List("Integer expected"))
       }
     }
+  }
+
+  def convertToString(expr: Expression, typ: String): Expression = {
+    val fun = typ + "2string"
+    val callExpr = CallExpr(FunId(fun), List(expr))
+    callExpr.typ = expr.typ
+    callExpr
   }
 
   def getFieldExprType(expr: Expression, fieldId: FieldId) = {
@@ -329,7 +351,7 @@ trait TypeAnalyzer extends ScopeAnalyzer {
         if (t canCastTo typ)
           Right(typ)
         else
-          Left(List("Can't cast from type " + t.toString + " to type " + typ.toString))
+          Left(List("Can't cast left type " + t.toString + " right type " + typ.toString))
       }
       case l => l
     }
@@ -379,7 +401,7 @@ trait TypeAnalyzer extends ScopeAnalyzer {
     else {
       val t = types.head
       types.dropWhile(_ == t) match {
-        case Nil => 
+        case Nil =>
           array.typ = ArrayType(t.right.get)
           Right(array.typ)
         case _ => Left(List("Different types in array " + types.map(_.right.get.toString).mkString("[", ",", "]")))
@@ -393,7 +415,7 @@ trait TypeAnalyzer extends ScopeAnalyzer {
       fields match {
         case Nil =>
           record.typ = RecordType(types.reverse)
-          Right(record.typ)
+          Right(record.typ.asInstanceOf[RecordType])
         case x :: xs => {
           val name = x.fieldId.name
           val typ = getType(x.expr)
