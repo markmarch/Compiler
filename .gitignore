@@ -8,3 +8,5 @@ project/boot
 project/build/target/
 project/plugins/target/
 project/plugins/lib_managed/
+*.ir
+IR*.jar
