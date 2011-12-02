@@ -1,11 +1,17 @@
 # Scopes and symbols
 f = fun (p : int, q : int) -> void {
   v = p + q;
+  print("outter scope :\n");
   for i in [1,2,3] {
     v := v + 10;
+    print(v + " ");
   }
-  { v = 0; }
-  print(v : string);
+  {
+  print("\ninner scope :\n");
+  v = 0;
+  print(v + "\n");
+  }
+  print("outter:\n" + (v : string));
 }
 main = fun () -> int {
   r = (g = 4, h = 5) : (g : int, h : int);
