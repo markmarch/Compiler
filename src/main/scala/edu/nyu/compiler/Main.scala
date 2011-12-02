@@ -12,18 +12,23 @@ import java.io._
 
 object Main extends TackParser with SemanticAnalyzer with IRGenerator{
   def main(args: Array[String]) {
-    val fileList = List("008", "009").map(name => new File("test/resources/pr3-test/" + name + ".tack"))
-    //    val fileList = new File("test/resources/pr3-test").listFiles(new FileFilter() {
-    //      override def accept(f: File) = {
-    //        f.getName.endsWith(".tack")
-    //      }
-    //    })
-    // val fileList = List(new File("test/sample.tack"))
-    if (args == null || args.length == 0)
-      fileList.foreach(process(_))
+    if (args.length == 0)
+      printUsage()
     else if (args.length == 1)
-      process(new File("test/resources/pr3-test/" + args(0)))
-    else process(new File("test/resources/pr3-test/" + args(0)), args(1).toInt)
+      process(new File(args(0)))
+    else process(new File(args(0)), args(1).toInt)
+  }
+
+  def printUsage() {
+    val usage = """Usage:
+    | run <file> [milestone = 1, 2, 3, 4]
+    | example:
+    | run 012.tack   // print out generated IR code for 012.tack
+    | run 012.tack 1 // check the syntax of 012.tack
+    | run 012.tack 2 // print out the AST
+    | run 012.tack 3 // check sematic of source 012.tack
+    | run 012.tack 4 // print out generated IR code"""
+    println(usage.stripMargin)
   }
 
   def writeToFile(lines: List[String], path: String) = {
@@ -40,7 +45,6 @@ object Main extends TackParser with SemanticAnalyzer with IRGenerator{
   }
 
   def process(file: File, mileStone: Int = 4) {
-    println("\n" + file.getName)
     try {
       val s = Source.fromFile(file).getLines().reduceLeft(_ + "\n" + _)
       val tokens = new PackratReader(new lexical.Scanner(s))
@@ -56,7 +60,6 @@ object Main extends TackParser with SemanticAnalyzer with IRGenerator{
             case Nil =>
             case _ => writeToFile(code, file.getAbsolutePath.replace(".tack", ".ir"))
           }
-
       }
     } catch {
       case e: FileNotFoundException => println(e.getMessage)
@@ -89,9 +92,9 @@ object Main extends TackParser with SemanticAnalyzer with IRGenerator{
   def generateIRCode(result: ParseResult[Program]): List[String] = {
     result match {
       case Success(program, _) => {
-        new IRGenerator {}.generateIR(program)
+        generateIR(program)
       }
-      case _ => Nil
+      case e: NoSuccess => println("Syntax error: " + e.msg); Nil
     }
   }
 }
