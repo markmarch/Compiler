@@ -10,26 +10,24 @@ import collection.mutable.ListBuffer
  */
 
 trait IRGenerator extends TypeAnalyzer {
-  private var nextLabelIndex = 0
-  private var nextTempIndex = 0
-  private val relationOp = Set("==", "!=", ">=", ">", "<=", "<")
-  private val arithmeticOp = Set("+", "-", "*", "/", "%")
+  private[this] var nextLabelIndex = 0
+  private[this] var nextTempIndex = 0
+  private[this] val relationOp = Set("==", "!=", ">=", ">", "<=", "<")
+  private[this] val arithmeticOp = Set("+", "-", "*", "/", "%")
 
-  def reset() {
-    nextLabelIndex = 0
-    nextTempIndex = 0
-  }
-
-  def mkLabel() = {
+  private[this] def mkLabel() = {
     nextLabelIndex += 1
     "L" + nextLabelIndex
   }
 
-  def mkTemp() = {
+  private[this] def mkTemp() = {
     nextTempIndex += 1
     "t" + nextTempIndex
   }
 
+  /**
+   * Generate IR code for the given program.
+   */
   def generateIR(p: Program): List[String] = {
     analyzeType(p) match {
       case Left(e) => println(e); Nil
@@ -42,15 +40,17 @@ trait IRGenerator extends TypeAnalyzer {
     f.id.name + " = fun" + f.typ.fromType.toString + " -> " + f.typ.returnType.toString :: f.blockStmt.code.map("  " + _)
   }
 
-  def genStmt(stmt: Stmt): Unit = stmt match {
-    case v: VarDef => genVarDef(v)
-    case a: AssignStmt => genAssignStmt(a)
-    case b: BlockStmt => genBlockStmt(b)
-    case c: CallStmt => genCallStmt(c)
-    case f: ForStmt => genForStmt(f)
-    case i: IfStmt => genIfStmt(i)
-    case r: ReturnStmt => genReturnStmt(r)
-    case w: WhileStmt => genWhileStmt(w)
+  def genStmt(stmt: Stmt) {
+    stmt match {
+      case v: VarDef => genVarDef(v)
+      case a: AssignStmt => genAssignStmt(a)
+      case b: BlockStmt => genBlockStmt(b)
+      case c: CallStmt => genCallStmt(c)
+      case f: ForStmt => genForStmt(f)
+      case i: IfStmt => genIfStmt(i)
+      case r: ReturnStmt => genReturnStmt(r)
+      case w: WhileStmt => genWhileStmt(w)
+    }
   }
 
   def genCallStmt(c: CallStmt) {
@@ -107,16 +107,15 @@ trait IRGenerator extends TypeAnalyzer {
     w.code = code.toList
   }
 
-  def genVarDef(v: VarDef) {
-    genAssignment(v, v.varId, v.expr)
-  }
+  def genVarDef(v: VarDef) = genAssignment(v, v.varId, v.expr)
 
+  def genAssignStmt(a: AssignStmt) = genAssignment(a, a.left, a.right)
+  
   def genAssignment(s: Stmt, left: Expression, right: Expression) {
     left match {
       case s: SubscriptExpr => genSubscriptExpr(s, true)
       case _ => genValueCode(left)
     }
-    
     right match {
       case t@InfixExpr("+", _, _) if right.typ == PrimitiveType("string") =>
         genStringAddExpr(t)
@@ -127,17 +126,22 @@ trait IRGenerator extends TypeAnalyzer {
         genValueCode(r)
         s.code = left.code ::: l.code :::
           r.code ::: List(left.address + " = " + l.address + " " + op + " " + r.address + ";")
+      case PrefixExpr("!", _) =>
+        right.t = mkLabel()
+        right.f = mkLabel()
+        genJumpingCode(right)
+        s.code = left.address + " = true;" :: right.code ::: List(right.f + ":", left.address + " = false;", right.t + ":")
       case PrefixExpr(op, e) =>
         genValueCode(e)
         s.code = left.code ::: e.code
         left match {
-          case sub : SubscriptExpr => 
+          case sub: SubscriptExpr =>
             right.address = mkTemp()
             s.code = s.code :::
               List(right.address + " = " + op + e.address + ";", left.address + " = " + right.address + ";")
-          case _ => s.code = s.code ::: List(left.address + " = " + op + e.address + ";") 
+          case _ => s.code = s.code ::: List(left.address + " = " + op + e.address + ";")
         }
-      case c : CastExpr =>
+      case c: CastExpr =>
         genValueCode(c)
         s.code = left.code ::: c.code :::
           List(left.address + " = " + c.address + ";")
@@ -146,11 +150,7 @@ trait IRGenerator extends TypeAnalyzer {
         s.code = left.code ::: right.code ::: List(left.address + " = " + right.address + ";")
     }
   }
-
-  def genAssignStmt(a: AssignStmt) {
-    genAssignment(a, a.left, a.right)
-  }
-
+  
   def genForStmt(f: ForStmt) = {
     genValueCode(f.expr)
     val code = new ListBuffer[String]
@@ -214,7 +214,7 @@ trait IRGenerator extends TypeAnalyzer {
       case _ =>
         genValueCode(expr)
         expr.code = expr.code ::: List("if " + expr.address + " goto " + expr.t + ";",
-        "goto " + expr.f + ";")
+          "goto " + expr.f + ";")
     }
   }
 
@@ -242,12 +242,12 @@ trait IRGenerator extends TypeAnalyzer {
     p.code = p.expr.code
   }
 
-  def genSubscriptExpr(subExpr: SubscriptExpr, returnRef : Boolean = false) {
+  def genSubscriptExpr(subExpr: SubscriptExpr, returnRef: Boolean = false) {
     genValueCode(subExpr.left)
     genValueCode(subExpr.right)
     subExpr.code = subExpr.left.code ::: subExpr.right.code
     if (returnRef) {
-      subExpr.address =  subExpr.left.address + "[" + subExpr.right.address + "]"
+      subExpr.address = subExpr.left.address + "[" + subExpr.right.address + "]"
     } else {
       subExpr.address = mkTemp()
       subExpr.code = subExpr.code ::: List(subExpr.address + " = " + subExpr.left.address + "[" + subExpr.right.address + "];")
@@ -329,11 +329,11 @@ trait IRGenerator extends TypeAnalyzer {
     }
   }
 
-  def genStringAddExpr(i : InfixExpr) {
+  def genStringAddExpr(i: InfixExpr) {
     val (left, right) = (i.left, i.right)
     genValueCode(left)
     genValueCode(right)
-    
+
     val code = new ListBuffer[String]
     code.appendAll(left.code)
     code.appendAll(right.code)
@@ -344,7 +344,7 @@ trait IRGenerator extends TypeAnalyzer {
     i.code = code.toList
   }
 
-  def genCallExpr(expr: CallExpr, withReturnValue : Boolean = false) {
+  def genCallExpr(expr: CallExpr, withReturnValue: Boolean = false) {
     val callee = expr.callee
     val params = expr.paramList
     val arity = params.size
@@ -354,7 +354,7 @@ trait IRGenerator extends TypeAnalyzer {
       for ((a, i) <- params.map(_.address).zipWithIndex)
       yield "param[" + i + " : " + arity + "] = " + a + ";"
     expr.code = params.flatMap(_.code) ::: prepareParamCode
-    if(!withReturnValue) {
+    if (!withReturnValue) {
       expr.address = mkTemp()
       expr.code = expr.code ::: List(expr.address + " = call " + callee.name + " : " + arity + ";")
     } else {
