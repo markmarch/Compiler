@@ -15,7 +15,7 @@ object Main extends TackParser with SemanticAnalyzer with IRGenerator{
     if (args.length == 0)
       printUsage()
     else if (args.length == 1)
-      process(new File(args(0)))
+      process(new File("test/resources/pr3-test/" + args(0)))
     else process(new File(args(0)), args(1).toInt)
   }
 
