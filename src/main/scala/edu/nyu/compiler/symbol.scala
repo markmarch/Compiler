@@ -5,23 +5,23 @@ import annotation.tailrec
 
 
 class TackSymbol(val definition: AstNode, val name: String, var typ: Type) {
+  if (definition != null)
+    definition.symbol = this
+  var address : Address = _
   override def toString = name + ":" + typ.toString
 }
 
 
 class Scope(val owner: AstNode, val parent: Scope) {
   val indentation = "  ";
-
   val children = new ListBuffer[Scope]()
   val symbols = new HashMap[String, TackSymbol]()
-
   // insert the scope to the ast node
   owner.scope = this
 
   def define(symbol: TackSymbol) = {
     symbols += (symbol.name -> symbol)
   }
-
   def contains(symbolName: String) = symbols.keySet.contains(symbolName)
 
   def get(symbolName: String) = symbols.get(symbolName)
@@ -41,7 +41,7 @@ class Scope(val owner: AstNode, val parent: Scope) {
 class SymbolTable(val topLevel: Scope) {
   var scopes = List(topLevel)
   var currentScope = topLevel
-
+  var currnetFuction : FunDef = _
   def pop(): Scope = {
     val head = scopes.head
     scopes = scopes.tail

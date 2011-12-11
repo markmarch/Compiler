@@ -222,8 +222,13 @@ trait TypeAnalyzer extends ScopeAnalyzer {
     val t = expression match {
       case id: VarId => symbolTable.lookup(id.name) match {
         case None => Left(List("Unknown variable '" + id.name + "'"))
-        case Some(s) if s.typ != null => Right(s.typ)
+        case Some(s) if s.typ != null => id.symbol = s; Right(s.typ)
         case _ => Left(List("Could not resolve type"))
+      }
+      case funId : FunId => symbolTable.lookup(funId.name) match {
+        case None => Left(List("Unknown funciton '" + funId.name + "'"))
+        case Some(s) if s.typ != null => funId.symbol = s; Right(s.typ)
+        case _ => Left(List("Could not resolve type for function '" + funId.name + "'"))
       }
       case bool: BoolLit => Right(PrimitiveType("bool"))
       case int: IntLit => Right(PrimitiveType("int"))

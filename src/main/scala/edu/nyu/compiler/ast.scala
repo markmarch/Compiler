@@ -1,8 +1,11 @@
 package edu.nyu.compiler
 
-import collection.mutable.ListBuffer
+import collection.mutable.{HashMap, ListBuffer}
+
 
 sealed abstract class AstNode {
+  var symbol : TackSymbol = _
+  var address : Address = _
   var scope: Scope = _
   val indent = "  " // two space indentation
   def label : String = this.getClass.getSimpleName
@@ -16,15 +19,14 @@ sealed abstract class AstNode {
 sealed abstract class Expression extends AstNode {
   var t : String = _
   var f : String = _
-  var address : String = _
   var typ : Type = _
-  var code : List[String] = List.empty[String]
+  var code : List[Instruction] = List.empty[Instruction]
 }
 
 sealed abstract class Type extends AstNode
 
 sealed abstract class Stmt extends AstNode {
-  var code : List[String] = List.empty[String]
+  var code : List[Instruction] = List.empty[Instruction]
 }
 
 trait HasValue[T] {
@@ -110,12 +112,12 @@ case class Program(funList : List[FunDef]) extends AstNode {
 }
 
 case class FunDef(id : FunId, typ : FunType, blockStmt : BlockStmt) extends AstNode {
+  var addresses : HashMap[String, Address] = _
   override def children = List(id, typ, blockStmt)
 }
 
 case class RecordType(fieldTypeList : List[FieldType]) extends Type {
   override def children = fieldTypeList
-  
   override def toString = fieldTypeList.map(f => f.toString).mkString("(", ",", ")")
 }
 

@@ -2,6 +2,7 @@ package edu.nyu.compiler
 
 import edu.nyu.compiler.ScopeAnalyzer.Result
 import collection.mutable.ListBuffer
+import annotation.tailrec
 
 /**
  * Created by IntelliJ IDEA.
@@ -10,9 +11,7 @@ import collection.mutable.ListBuffer
  * Time: 2:52 PM
  */
 object ScopeAnalyzer {
-
   class Result(val table: SymbolTable, val errors: ListBuffer[String])
-
 }
 
 trait ScopeAnalyzer {
@@ -63,7 +62,7 @@ trait ScopeAnalyzer {
       case fun: FunDef => {
         table.topLevel.define(new TackSymbol(fun, fun.id.name, fun.typ))
         table.push(new Scope(fun, table.currentScope))
-        fun.typ.fromType.fieldTypeList.foreach(f => defineSymbol(result, new TackSymbol(f, f.fieldId.name, f.typ)))
+        fun.typ.fromType.fieldTypeList.foreach(f => defineSymbol(result, new TackSymbol(f.fieldId, f.fieldId.name, f.typ)))
         (fun.typ.fromType :: fun.blockStmt.stmtList).foreach(analyzeScope(_, result))
         table.pop()
       }
@@ -90,15 +89,15 @@ trait ScopeAnalyzer {
         table.pop()
       }
       case varDef: VarDef => {
-        defineSymbol(result, new TackSymbol(varDef, varDef.varId.name, null))
+        defineSymbol(result, new TackSymbol(varDef.varId, varDef.varId.name, null))
         analyzeScope(varDef.expr, result)
       }
       case fieldType: FieldType => {
-        defineSymbol(result, new TackSymbol(fieldType, fieldType.fieldId.name, fieldType.typ))
+        defineSymbol(result, new TackSymbol(fieldType.fieldId, fieldType.fieldId.name, fieldType.typ))
         analyzeScope(fieldType.typ, result)
       }
       case fieldLit: FieldLit => {
-        defineSymbol(result, new TackSymbol(fieldLit, fieldLit.fieldId.name, null))
+        defineSymbol(result, new TackSymbol(fieldLit.fieldId, fieldLit.fieldId.name, null))
         analyzeScope(fieldLit.expr, result)
       }
       case _ => {
