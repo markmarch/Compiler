@@ -11,7 +11,9 @@ import annotation.tailrec
  * Time: 2:52 PM
  */
 object ScopeAnalyzer {
+
   class Result(val table: SymbolTable, val errors: ListBuffer[String])
+
 }
 
 trait ScopeAnalyzer {
@@ -21,30 +23,30 @@ trait ScopeAnalyzer {
     RecordType(list.map((r: (String, Type)) => FieldType(FieldId(r._1), r._2)))
   }
 
-  def int(id: String) = (id, PrimitiveType("int"))
+  def intType(id: String): (String, Type) = (id, PrimitiveType("int"))
 
-  def string(id: String) = (id, PrimitiveType("string"))
+  def stringType(id: String): (String, Type) = (id, PrimitiveType("string"))
 
-  def bool(id: String) = (id, PrimitiveType("string"))
+  def boolType(id: String): (String, Type) = (id, PrimitiveType("string"))
 
   val fieldPlaceHolder = List()
   val recordPlaceHolder = RecordType(fieldPlaceHolder)
 
   val intrinsicFunctionDes: List[(String, Type, List[(String, Type)])] = List(
-    ("append", "string", List(string("lhs"), string("rhs"))),
-    ("bool2int", "int", List(bool("b"))),
-    ("bool2string", "string", List(bool("b"))),
-    ("int2bool", "bool", List(bool("b"))),
-    ("int2string", "string", List(int("i"))),
-    ("length", "int", List(string("s"))),
-    ("newArray", ArrayType(recordPlaceHolder), List(int("eSize"), int("aSize"))),
-    ("newRecord", recordPlaceHolder, List(int("rSize"))),
-    ("print", "void", List(string("s"))),
-    ("range", ArrayType("int"), List(int("start"), int("end"))),
-    ("size", "int", List(("a", ArrayType(recordPlaceHolder)))),
-    ("string2bool", "bool", List(string("s"))),
-    ("string2int", "int", List(string("s"))),
-    ("stringEqual", "bool", List(string("lhs"), string("rhs")))
+    ("append", int, List(stringType("lhs"), stringType("rhs"))),
+    ("bool2int", int, List(boolType("b"))),
+    ("bool2string", string, List(boolType("b"))),
+    ("int2bool", bool, List(boolType("b"))),
+    ("int2string", string, List(intType("i"))),
+    ("length", int, List(stringType("s"))),
+    ("newArray", ArrayType(recordPlaceHolder), List(intType("eSize"), intType("aSize"))),
+    ("newRecord", recordPlaceHolder, List(intType("rSize"))),
+    ("print", PrimitiveType("void"), List(stringType("s"))),
+    ("range", ArrayType("int"), List(intType("start"), intType("end"))),
+    ("size", int, List(("a", ArrayType(recordPlaceHolder)))),
+    ("string2bool", bool, List(stringType("s"))),
+    ("string2int", int, List(stringType("s"))),
+    ("stringEqual", bool, List(stringType("lhs"), stringType("rhs")))
   )
 
   val intrinsicFunctionList = intrinsicFunctionDes.map(f => new TackSymbol(null, f._1, FunType(mkRecordType(f._3), f._2)))
@@ -63,7 +65,8 @@ trait ScopeAnalyzer {
         table.topLevel.define(new TackSymbol(fun, fun.id.name, fun.typ))
         table.push(new Scope(fun, table.currentScope))
         fun.typ.fromType.fieldTypeList.foreach(f => defineSymbol(result, new TackSymbol(f.fieldId, f.fieldId.name, f.typ)))
-        (fun.typ.fromType :: fun.blockStmt.stmtList).foreach(analyzeScope(_, result))
+        // (fun.typ.fromType :: fun.blockStmt.stmtList).foreach(analyzeScope(_, result))
+        fun.blockStmt.stmtList.foreach(analyzeScope(_, result))
         table.pop()
       }
       case record: RecordType => {
