@@ -53,10 +53,6 @@ trait TypeAnalyzer extends ScopeAnalyzer {
 
   import TypeAnalyzer.type2RichType
 
-  val int = PrimitiveType("int")
-  val string = PrimitiveType("string")
-  val bool = PrimitiveType("bool")
-
   var symbolTable: SymbolTable = _
   var errors = new ListBuffer[String]
 
@@ -342,7 +338,7 @@ trait TypeAnalyzer extends ScopeAnalyzer {
     getType(expr) match {
       case Right(r: RecordType) => r.fieldTypeList.view.filter(_.fieldId == fieldId) match {
         case l if l.isEmpty => Left(List("Unknown filed '" + fieldId.name + "'"))
-        case l => Right(l.head.typ)
+        case l => expr.typ = l.head.typ; Right(l.head.typ)
       }
       case Right(t) => Left(List("Left side of expression must be record type, found " + t.toString))
       case l => l
