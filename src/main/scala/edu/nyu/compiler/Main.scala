@@ -10,13 +10,13 @@ import java.io._
  * Time: 3:25 PM
  */
 
-object Main extends TackParser with SemanticAnalyzer with IRGenerator{
+object Main extends TackParser with TypeAnalyzer with IRGenerator with CodeGenerator {
   def main(args: Array[String]) {
     if (args.length == 0)
       printUsage()
     else if (args.length == 1)
       process(new File("test/resources/pr3-test/" + args(0)))
-    else process(new File(args(0)), args(1).toInt)
+    else process(new File("test/resources/pr3-test/" + args(0)), args(1).toInt)
   }
 
   def printUsage() {
@@ -27,7 +27,8 @@ object Main extends TackParser with SemanticAnalyzer with IRGenerator{
     | run 012.tack 1 // check the syntax of 012.tack
     | run 012.tack 2 // print out the AST
     | run 012.tack 3 // check sematic of source 012.tack
-    | run 012.tack 4 // print out generated IR code"""
+    | run 012.tack 4 // print out generated IR code
+    | run 012.tack 5 // print out generated x64 assembly code"""
     println(usage.stripMargin)
   }
 
@@ -44,57 +45,40 @@ object Main extends TackParser with SemanticAnalyzer with IRGenerator{
     }
   }
 
-  def process(file: File, mileStone: Int = 4) {
-    try {
-      val s = Source.fromFile(file).getLines().reduceLeft(_ + "\n" + _)
-      val tokens = new PackratReader(new lexical.Scanner(s))
-      val result = phrase(program)(tokens)
-      mileStone match {
-        case 1 => checkSyntax(result)
-        case 2 => printAst(result)
-        case 3 => semanticAnalyze(result)
-        case 4 =>
-          val code = generateIRCode(result)
-          code.foreach(println)
-          code match {
-            case Nil =>
-            case _ => writeToFile(code, file.getAbsolutePath.replace(".tack", ".ir"))
-          }
-      }
-    } catch {
-      case e: FileNotFoundException => println(e.getMessage)
-    }
-  }
-
-  def checkSyntax(result: ParseResult[Program]) {
+  def process(file: File, mileStone: Int = 5) {
+    val s = Source.fromFile(file).getLines().reduceLeft(_ + "\n" + _)
+    val tokens = new PackratReader(new lexical.Scanner(s))
+    val result = phrase(program)(tokens)
     result match {
-      case Success(_, _) =>
+      case Success(program, _) => milestone(program, mileStone, file)
       case e: NoSuccess => println("Syntax error : " + e.msg)
     }
   }
 
-  def printAst(result: ParseResult[Program]) {
-    result match {
-      case Success(program, _) => println(program.getStringRep(0))
-      case e: NoSuccess => println("Syntax error: " + e.msg)
-    }
-  }
-
-  def semanticAnalyze(result: ParseResult[Program]) {
-    result match {
-      case Success(program, _) => {
-        new SemanticAnalyzer {}.analyze(program)
+  def milestone(p: Program, m: Int, file: File) {
+    m match {
+      case 1 =>
+      case 2 => println(p.getStringRep(0))
+      case 3 => analyzeType(p) match {
+        case Right(_) => println(symbolTable.toString)
+        case Left(e) => println(e)
       }
-      case e: NoSuccess => println("Syntax error: " + e.msg)
-    }
-  }
-
-  def generateIRCode(result: ParseResult[Program]): List[String] = {
-    result match {
-      case Success(program, _) => {
-        generateIR(program)
+      case 4 => analyzeType(p) match {
+        case Right(_) =>
+          val code = genProgram(p).getStringRep
+          code.foreach(println)
+          writeToFile(code, file.getAbsolutePath.replace(".tack", ".ir"))
+        case Left(e) => println(e)
       }
-      case e: NoSuccess => println("Syntax error: " + e.msg); Nil
+      case 5 => analyzeType(p) match {
+        case Right(_) =>
+          val irCode = genProgram(p)
+          val code = generate(irCode)
+          println(code);
+          writeToFile(irCode.getStringRep, file.getAbsolutePath.replace(".tack", ".ir"))
+          writeToFile(code.split("\n").toList, file.getAbsolutePath.replace(".tack", ".s"))
+        case Left(e) => println(e)
+      }
     }
   }
 }
