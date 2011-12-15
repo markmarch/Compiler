@@ -122,6 +122,7 @@ case class RecordType(fieldTypeList : List[FieldType]) extends Type {
 }
 
 case class FunType(fromType : RecordType, returnType : Type) extends Type  {
+  override def toString = fromType.toString + "->" + returnType.toString
   override def children = List(fromType, returnType)
 }
 
