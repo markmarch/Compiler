@@ -9,6 +9,8 @@ project/build/target/
 project/plugins/target/
 project/plugins/lib_managed/
 *.ir
+*.s
+*.tack
 IR*.jar
 
 test/resources/pr3-test/run.sh
