@@ -41,16 +41,18 @@ trait CodeGenerator {
     offsetMap.clear()
     val header = ".text\n\t" + ".global " + f.id + "\n\t.type\t" + f.id + ", @function\n " + f.id + ":\n"
     val saveStack = List("push rbp", mov("rbp", "rsp"), "sub  rsp, " + sp)
+
     // get function arguments
-    val argAddr = f.funType.fromType.fieldTypeList.map(_.fieldId.symbol.address.asInstanceOf[NameAddr])
-    val getArgs = argsRegister.zip(argAddr).map(p => mov(p._2, p._1)) :::
-      argAddr.drop(argsRegister.size).map("pop " + getAddress(_))
-    val body = saveStack ::: getArgs ::: f.stmtList.flatMap(genInstr)
+    val argAddresses = f.funType.fromType.fieldTypeList.map(_.fieldId.symbol.address.asInstanceOf[NameAddr])
+    val (byRegister, byStack) = argAddresses.splitAt(argsRegister.size)
+    byStack.zipWithIndex.foreach(p => offsetMap.put(p._1.name, (p._2 + 2) * -8))
+    val getRegisterArgs = argsRegister.zip(byRegister).map(p => mov(p._2, p._1))
+    val body = saveStack ::: getRegisterArgs ::: f.stmtList.flatMap(genInstr)
     val rest = " %s.end:\n\t.size\t%s, .-%s".format(f.id, f.id, f.id)
-    header + body.mkString("\t", "\n\t", "\n") + rest + getRodata(f.id)
+    header + body.mkString("\t", "\n\t", "\n") + rest + getRoData(f.id)
   }
 
-  def getRodata(funId: String): String = roData.get(funId) match {
+  def getRoData(funId: String): String = roData.get(funId) match {
     case Some(m) =>
       val data = for (lit <- m.keys) yield " " + m.get(lit).get + ":\n\t.string " + lit
       "\n.section .rodata" + data.mkString("\n", "\n", "\n")
@@ -93,7 +95,7 @@ trait CodeGenerator {
     a.index match {
       case na: NameAddr =>
         List(
-          mov("rax", "QWORD PTR [rbp-" + getOffset(a.array) + "]"),
+          mov("rax", "QWORD PTR [rbp" + getOffset(a.array) + "]"),
           mov("rbx", "QWORD PTR [rax+8]"),
           mov("rdx", na),
           mov("rax", a.address),
@@ -101,7 +103,7 @@ trait CodeGenerator {
       case ConstAddr(index, `int`) =>
         val offset = index.toInt * 8
         List(
-          mov("rax", "QWORD PTR [rbp-" + getOffset(a.array) + "]"),
+          mov("rax", "QWORD PTR [rbp" + getOffset(a.array) + "]"),
           mov("rbx", "QWORD PTR [rax+8]"),
           mov("rax", a.address),
           mov("QWORD PTR [rbx+" + offset + "]", "rax"))
@@ -113,7 +115,7 @@ trait CodeGenerator {
     a.index match {
       case na: NameAddr =>
         List(
-          mov("rax", "QWORD PTR [rbp-" + getOffset(a.array) + "]"),
+          mov("rax", "QWORD PTR [rbp" + getOffset(a.array) + "]"),
           mov("rbx", "QWORD PTR [rax+8]"),
           mov("rdx", na),
           mov("rax", "QWORD PTR [rbx+rdx*8]"),
@@ -121,7 +123,7 @@ trait CodeGenerator {
       case ConstAddr(index, `int`) =>
         val offset = index.toInt * 8
         List(
-          mov("rax", "QWORD PTR [rbp-" + getOffset(a.array) + "]"),
+          mov("rax", "QWORD PTR [rbp" + getOffset(a.array) + "]"),
           mov("rbx", "QWORD PTR [rax+8]"),
           mov("rax", "QWORD PTR [rbx+" + offset + "]"),
           mov(a.address, "rax"))
@@ -132,10 +134,10 @@ trait CodeGenerator {
     val t = r.record.typ.asInstanceOf[RecordType]
     val offset = getFieldOffset(t, r.fieldId)
     if (offset == 0) {
-      List(mov("rax", r.address), mov("rbx", "QWORD PTR[rbp-" + getOffset(r.record) + "]"), mov("QWORD PTR [rbx]", "rax"))
+      List(mov("rax", r.address), mov("rbx", "QWORD PTR[rbp" + getOffset(r.record) + "]"), mov("QWORD PTR [rbx]", "rax"))
     } else {
       List(mov("rax", r.address),
-        mov("rbx", "QWORD PTR [rbp-" + getOffset(r.record) + "]"),
+        mov("rbx", "QWORD PTR [rbp" + getOffset(r.record) + "]"),
         mov("QWORD PTR [rbx+" + offset + "]", "rax"))
     }
 
@@ -146,12 +148,12 @@ trait CodeGenerator {
     val offset = getFieldOffset(t, r.fieldId)
     if (offset == 0) {
       List(
-        mov("rbx", "QWORD PTR [rbp-" + getOffset(r.record) + "]"),
+        mov("rbx", "QWORD PTR [rbp" + getOffset(r.record) + "]"),
         mov("rax", "QWORD PTR[rbx]"),
         mov(r.address, "rax"))
     } else {
       List(
-        mov("rbx", "QWORD PTR [rbp-" + getOffset(r.record) + "]"),
+        mov("rbx", "QWORD PTR [rbp" + getOffset(r.record) + "]"),
         mov("rax", "QWORD PTR [rbx+" + offset + "]"), mov(r.address, "rax"))
     }
 
@@ -189,8 +191,6 @@ trait CodeGenerator {
           case _ => List("cmp  " + getAddress(r.left) + ", " + getAddress(r.right), relOpMap.get(r.op).get + " " + r.label)
         }
     }
-
-
   }
 
   def genInfixInstr(i: InfixInstr): List[String] = i.op match {
@@ -200,7 +200,6 @@ trait CodeGenerator {
         case "%" => mov(getAddress(i.address), "rdx")
         case "/" => mov(getAddress(i.address), "rax")
       }
-
       val div = i.right match {
         case _: NameAddr => List("idiv " + getAddress(i.right))
         case _ => List(mov("rcx", getAddress(i.right)), "idiv rcx")
@@ -211,7 +210,6 @@ trait CodeGenerator {
       case _ => List(mov("rax", getAddress(i.left)), mov("rdx", getAddress(i.right)), "imul rax, rdx", mov(getAddress(i.address), "rax"))
     }
   }
-
 
   def genAddSubInstr(op: String, a: NameAddr, left: Address, right: Address): List[String] = {
     (left, right) match {
@@ -226,9 +224,7 @@ trait CodeGenerator {
     case None => ret
   }
 
-
   def genCopyInstr(c: CopyInstr): List[String] = {
-    println(c.left + " = " + c.right)
     c.right match {
       case na: NameAddr => List(mov("rax", getAddress(c.right)), mov(getAddress(c.left), "rax"))
       case _ => List(mov(getAddress(c.left), getAddress(c.right)))
@@ -236,7 +232,10 @@ trait CodeGenerator {
   }
 
   def genCallInstr(ci: CallInstr): List[String] = {
-    val callInstr = prepareArgs(ci.paramList).reverse ::: List(mov("rax", "0"), call(ci.funId))
+    // prepare function arguments
+    val prepareArgs = ci.paramList.zip(argsRegister).map(p => mov(p._2, p._1.address)) :::
+      ci.paramList.drop(argsRegister.size).map(a => "push " + getAddress(a.address))
+    val callInstr = prepareArgs.reverse ::: List(mov("rax", "0"), call(ci.funId))
     ci.oa match {
       case Some(a) =>
         val na = a.asInstanceOf[NameAddr]
@@ -245,19 +244,16 @@ trait CodeGenerator {
     }
   }
 
-  def prepareArgs(args: List[ParamInstr]): List[String] = {
-    args.zip(argsRegister).map(p => mov(p._2, p._1.address)) :::
-      args.drop(argsRegister.size).map(a => "push " + getAddress(a.address))
+  def getOffset(addr: NameAddr): String = {
+    val i = offsetMap.get(addr.name) match {
+      case Some(offset) => offset
+      case None =>
+        offsetMap.put(addr.name, sp)
+        sp -= 8
+        sp + 8
+    }
+    (if(i < 0) "+" else "-") + i.abs
   }
-
-  def getOffset(addr: NameAddr): Int = offsetMap.get(addr.name) match {
-    case Some(offset) => offset
-    case None =>
-      offsetMap.put(addr.name, sp)
-      sp -= 8
-      sp + 8
-  }
-
 
   def getFieldOffset(r: RecordType, f: String): Int = {
     @tailrec
@@ -291,10 +287,9 @@ trait CodeGenerator {
   }
 
   object x64 {
-
     def getAddress(a: Address) = a match {
-      case na: NameAddr => "QWORD PTR [rbp-" + getOffset(na) + "]"
-      case ConstAddr(_ , _: NullType) => "0"
+      case na: NameAddr => "QWORD PTR [rbp" + getOffset(na) + "]"
+      case ConstAddr(_, _: NullType) => "0"
       case ConstAddr(lit, `int`) => lit
       case ConstAddr(lit, `bool`) => if (lit == "true") "1" else "0"
       case ConstAddr(lit, `string`) => "OFFSET FLAT:" + getStringLitLabel(currentFun.id, lit)
