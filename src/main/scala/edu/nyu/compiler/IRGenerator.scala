@@ -19,7 +19,7 @@ trait IRGenerator extends TypeAnalyzer {
       s.definition match {
         case v: VarId => s.address = NameAddr(nextUniqueName(addresses, v.name, s.typ), s.typ)
         case f: FieldId => s.address = NameAddr(nextUniqueName(addresses, f.name, s.typ), s.typ)
-        case f: FunId => s.address = NameAddr(nextUniqueName(addresses, f.name, s.typ), s.typ)
+        //        case f: FunId => s.address = NameAddr(nextUniqueName(addresses, f.name, s.typ), s.typ)
       }
     }
     for (s <- scope.children)
@@ -55,7 +55,7 @@ trait IRGenerator extends TypeAnalyzer {
     f.addresses = findAddresses(HashMap.empty[String, Address], f.scope)
     genStmt(f.blockStmt)
     symbolTable.pop()
-    FunIr(f.id.name, f.typ, f.blockStmt.code, f.addresses.size * 8)
+    FunIr(f.id.name, f.typ, f.blockStmt.code, (f.addresses.size - f.typ.fromType.fieldTypeList.drop(6).size) * 8)
   }
 
   def genStmt(stmt: Stmt) {
@@ -142,27 +142,43 @@ trait IRGenerator extends TypeAnalyzer {
   def genAssignStmt(a: AssignStmt) = genAssignment(a, a.left, a.right)
 
   def genAssignment(s: Stmt, left: Expression, right: Expression) {
-    genValueCode(left)
+    left match {
+      case _: FieldExpr =>
+      case _ => genValueCode(left)
+    }
     (left, right) match {
-      case (sub: SubscriptExpr, PrefixExpr("!", e)) =>
-        genValueCode(e)
+      case (_, PrefixExpr("!", e)) =>
         right.t = mkLabel()
         right.f = mkLabel()
         genJumpingCode(right)
-        s.code = ArrayWriteInstr(sub.left.address.asInstanceOf[NameAddr], sub.right.address, ConstAddr("true", bool)) :: right.code :::
-          List(LabeledInstruction(right.f,
-            ArrayWriteInstr(sub.left.address.asInstanceOf[NameAddr], sub.right.address, ConstAddr("false", bool))), EmptyLabel(right.t))
+        left match {
+          case sub: SubscriptExpr =>
+            s.code = left.code ::: (
+              ArrayWriteInstr(sub.left.address.asInstanceOf[NameAddr], sub.right.address, ConstAddr("true", bool)) ::
+                right.code :::
+                List(LabeledInstruction(right.f, ArrayWriteInstr(sub.left.address.asInstanceOf[NameAddr],
+                  sub.right.address, ConstAddr("false", bool))), EmptyLabel(right.t)))
+          case f: FieldExpr =>
+            genValueCode(f.expr)
+            s.code = f.expr.code :::(
+              RecWriteInstr(f.expr.address.asInstanceOf[NameAddr], f.fieldId.name, ConstAddr("true", bool)) :: right.code :::
+              List(LabeledInstruction(right.f,
+                RecWriteInstr(f.expr.address.asInstanceOf[NameAddr], f.fieldId.name, ConstAddr("false", bool))), EmptyLabel(right.t)))
+          case _ =>
+            s.code = CopyInstr(left.address, ConstAddr("true", bool)) :: right.code :::
+              List(LabeledInstruction(right.f, CopyInstr(left.address, ConstAddr("false", bool))), EmptyLabel(right.t))
+        }
       case (sub: SubscriptExpr, _) =>
         genValueCode(right)
         s.address = left.address
         s.code = left.code ::: right.code :::
           List(ArrayWriteInstr(sub.left.address.asInstanceOf[NameAddr], sub.right.address, right.address))
-      case (_, PrefixExpr("!", e)) =>
-        right.t = mkLabel()
-        right.f = mkLabel()
-        genJumpingCode(right)
-        s.code = CopyInstr(left.address, ConstAddr("true", bool)) :: right.code :::
-          List(LabeledInstruction(right.f, CopyInstr(left.address, ConstAddr("false", bool))), EmptyLabel(right.t))
+      case (f: FieldExpr, _) =>
+        genValueCode(f.expr)
+        genValueCode(right)
+        s.address = f.address
+        s.code = f.expr.code ::: right.code :::
+          List(RecWriteInstr(f.expr.address.asInstanceOf[NameAddr], f.fieldId.name, right.address))
       case _ =>
         genValueCode(right)
         s.address = left.address
@@ -379,14 +395,8 @@ trait IRGenerator extends TypeAnalyzer {
   def genCastExpr(c: CastExpr) {
     genValueCode(c.expr)
     c.address = mkTemp(c.toType)
-    //    val cast = c.expr.typ match {
-    //      case t@PrimitiveType(from) if t != c.toType =>
-    //        List(CallInstr(List(ParamInstr(0, 1, c.expr.address)), Some(c.address), from + "2" + c.toType.toString, 1))
-    //      case _ => Nil
-    //    }
     c.code = c.expr.code ::: List(CastInstr(c.address.asInstanceOf[NameAddr], c.expr.address, c.expr.typ))
   }
-
 
   def genFieldExpr(f: FieldExpr) = {
     genValueCode(f.expr)
