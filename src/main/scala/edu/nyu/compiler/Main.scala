@@ -15,8 +15,8 @@ object Main extends TackParser with TypeAnalyzer with IRGenerator with CodeGener
     if (args.length == 0)
       printUsage()
     else if (args.length == 1)
-      process(new File("test/resources/pr3-test/" + args(0)))
-    else process(new File("test/resources/pr3-test/" + args(0)), args(1).toInt)
+      process(new File(args(0)))
+    else process(new File(args(0)), args(1).toInt)
   }
 
   def printUsage() {
